@@ -1,8 +1,8 @@
 <?php
 
-namespace Dsc\Themes\SampleTheme;
+namespace Buni\Themes\SampleTheme;
 
-use Dsc\Cms\Contracts\ThemeInterface;
+use Buni\Cms\Contracts\ThemeInterface;
 
 class Theme implements ThemeInterface
 {

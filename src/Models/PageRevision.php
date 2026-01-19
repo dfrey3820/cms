@@ -1,6 +1,6 @@
 <?php
 
-namespace Dsc\Cms\Models;
+namespace Buni\Cms\Models;
 
 use Illuminate\Database\Eloquent\Model;
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace Dsc\Cms\Commands;
+namespace Buni\Cms\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
@@ -24,12 +24,12 @@ class CreateThemeCommand extends Command
 
         // Create composer.json
         $composer = [
-            'name' => 'dsc/' . strtolower($name) . '-theme',
+            'name' => 'buni/' . strtolower($name) . '-theme',
             'description' => 'A DSC CMS theme',
             'type' => 'library',
             'autoload' => [
                 'psr-4' => [
-                    'Dsc\\Themes\\' . $name . '\\' => 'src/'
+                    'Buni\\Themes\\' . $name . '\\' => 'src/'
                 ]
             ]
         ];
@@ -39,7 +39,7 @@ class CreateThemeCommand extends Command
         // Create src directory and Theme.php
         File::makeDirectory($themePath . '/src', 0755, true);
 
-        $themeClass = "<?php\n\nnamespace Dsc\\Themes\\{$name};\n\nuse Dsc\\Cms\\Contracts\\ThemeInterface;\n\nclass Theme implements ThemeInterface\n{\n    public function register()\n    {\n        // Register theme\n    }\n\n    public function boot()\n    {\n        // Boot theme\n    }\n\n    public function getName(): string\n    {\n        return '{$name}';\n    }\n\n    public function getVersion(): string\n    {\n        return '1.0.0';\n    }\n\n    public function getDescription(): string\n    {\n        return 'Description of {$name} theme';\n    }\n\n    public function getLayout(): string\n    {\n        return 'layouts.app';\n    }\n}";
+        $themeClass = "<?php\n\nnamespace Buni\\Themes\\{$name};\n\nuse Buni\\Cms\\Contracts\\ThemeInterface;\n\nclass Theme implements ThemeInterface\n{\n    public function register()\n    {\n        // Register theme\n    }\n\n    public function boot()\n    {\n        // Boot theme\n    }\n\n    public function getName(): string\n    {\n        return '{$name}';\n    }\n\n    public function getVersion(): string\n    {\n        return '1.0.0';\n    }\n\n    public function getDescription(): string\n    {\n        return 'Description of {$name} theme';\n    }\n\n    public function getLayout(): string\n    {\n        return 'layouts.app';\n    }\n}";
 
         File::put($themePath . '/src/Theme.php', $themeClass);
 

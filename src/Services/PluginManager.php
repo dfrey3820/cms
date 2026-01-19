@@ -1,8 +1,8 @@
 <?php
 
-namespace Dsc\Cms\Services;
+namespace Buni\Cms\Services;
 
-use Dsc\Cms\Contracts\PluginInterface;
+use Buni\Cms\Contracts\PluginInterface;
 use Illuminate\Support\Facades\File;
 
 class PluginManager

@@ -1,4 +1,4 @@
-# DSC CMS
+# Digitalsteps CMS
 
 A Laravel package that transforms a Laravel Inertia React app into a full WordPress-like CMS.
 
@@ -17,7 +17,7 @@ A Laravel package that transforms a Laravel Inertia React app into a full WordPr
 
 1. Install the package via Composer:
    ```bash
-   composer require dsc/cms
+   composer require digitalsteps/cms
    ```
 
 2. Run the installation command:
@@ -27,7 +27,7 @@ A Laravel package that transforms a Laravel Inertia React app into a full WordPr
 
 3. Publish the assets:
    ```bash
-   php artisan vendor:publish --provider="Dsc\Cms\Providers\CmsServiceProvider" --tag="cms-config"
+   php artisan vendor:publish --provider="Digitalsteps\Cms\Providers\CmsServiceProvider" --tag="cms-config"
    ```
 
 ## Usage

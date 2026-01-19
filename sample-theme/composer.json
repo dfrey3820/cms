@@ -1,10 +1,10 @@
 {
-    "name": "dsc/sample-theme",
+    "name": "buni/sample-theme",
     "description": "A sample theme for DSC CMS",
     "type": "library",
     "autoload": {
         "psr-4": {
-            "Dsc\\Themes\\SampleTheme\\": "src/"
+            "Buni\\Themes\\SampleTheme\\": "src/"
         }
     }
 }

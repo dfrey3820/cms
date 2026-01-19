@@ -1,12 +1,12 @@
 {
-    "name": "dsc/cms",
+    "name": "buni/cms",
     "description": "A Laravel package that transforms a Laravel Inertia React app into a full WordPress-like CMS",
     "type": "library",
     "license": "MIT",
     "authors": [
         {
-            "name": "Your Name",
-            "email": "your.email@example.com"
+            "name": "Digital Steps Creatives",
+            "email": "themes@dsc.co.ke"
         }
     ],
     "require": {
@@ -20,13 +20,13 @@
     },
     "autoload": {
         "psr-4": {
-            "Dsc\\Cms\\": "src/"
+            "Buni\\Cms\\": "src/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Dsc\\Cms\\Providers\\CmsServiceProvider"
+                "Buni\\Cms\\Providers\\CmsServiceProvider"
             ]
         }
     }

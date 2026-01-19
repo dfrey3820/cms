@@ -1,6 +1,6 @@
 <?php
 
-namespace Dsc\Cms\Services;
+namespace Buni\Cms\Services;
 
 use Closure;
 

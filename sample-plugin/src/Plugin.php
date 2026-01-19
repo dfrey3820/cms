@@ -1,9 +1,9 @@
 <?php
 
-namespace Dsc\Plugins\SamplePlugin;
+namespace Buni\Plugins\SamplePlugin;
 
-use Dsc\Cms\Contracts\PluginInterface;
-use Dsc\Cms\Services\HookManager;
+use Buni\Cms\Contracts\PluginInterface;
+use Buni\Cms\Services\HookManager;
 
 class Plugin implements PluginInterface
 {

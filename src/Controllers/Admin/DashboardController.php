@@ -1,6 +1,6 @@
 <?php
 
-namespace Dsc\Cms\Controllers\Admin;
+namespace Buni\Cms\Controllers\Admin;
 
 use Inertia\Inertia;
 use Illuminate\Routing\Controller;

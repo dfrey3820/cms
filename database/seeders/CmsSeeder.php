@@ -1,6 +1,6 @@
 <?php
 
-namespace Dsc\Cms\Database\Seeders;
+namespace Buni\Cms\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;

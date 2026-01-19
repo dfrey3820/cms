@@ -1,12 +1,12 @@
 <?php
 
-namespace Dsc\Cms\Providers;
+namespace Buni\Cms\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Dsc\Cms\Services\PluginManager;
-use Dsc\Cms\Services\ThemeManager;
-use Dsc\Cms\Services\HookManager;
-use Dsc\Cms\Services\PageBuilder;
+use Buni\Cms\Services\PluginManager;
+use Buni\Cms\Services\ThemeManager;
+use Buni\Cms\Services\HookManager;
+use Buni\Cms\Services\PageBuilder;
 
 class CmsServiceProvider extends ServiceProvider
 {

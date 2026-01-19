@@ -1,10 +1,10 @@
 {
-    "name": "dsc/sample-plugin",
+    "name": "buni/sample-plugin",
     "description": "A sample plugin for DSC CMS",
     "type": "library",
     "autoload": {
         "psr-4": {
-            "Dsc\\Plugins\\SamplePlugin\\": "src/"
+            "Buni\\Plugins\\SamplePlugin\\": "src/"
         }
     }
 }

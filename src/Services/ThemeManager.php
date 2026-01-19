@@ -1,8 +1,8 @@
 <?php
 
-namespace Dsc\Cms\Services;
+namespace Buni\Cms\Services;
 
-use Dsc\Cms\Contracts\ThemeInterface;
+use Buni\Cms\Contracts\ThemeInterface;
 use Illuminate\Support\Facades\File;
 
 class ThemeManager

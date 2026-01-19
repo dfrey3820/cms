@@ -1,8 +1,8 @@
 <?php
 
-namespace Dsc\Cms\Controllers\Admin;
+namespace Buni\Cms\Controllers\Admin;
 
-use Dsc\Cms\Models\Page;
+use Buni\Cms\Models\Page;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;

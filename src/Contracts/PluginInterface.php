@@ -1,6 +1,6 @@
 <?php
 
-namespace Dsc\Cms\Contracts;
+namespace Buni\Cms\Contracts;
 
 interface PluginInterface
 {

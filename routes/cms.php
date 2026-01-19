@@ -1,8 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Dsc\Cms\Controllers\Admin\DashboardController;
-use Dsc\Cms\Controllers\Admin\PageController;
+use Buni\Cms\Controllers\Admin\DashboardController;
+use Buni\Cms\Controllers\Admin\PageController;
 
 Route::prefix(config('cms.admin_prefix'))->middleware(['web', 'auth'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('cms.admin.dashboard');
