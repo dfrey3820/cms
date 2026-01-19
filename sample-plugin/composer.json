@@ -1,0 +1,10 @@
+{
+    "name": "dsc/sample-plugin",
+    "description": "A sample plugin for DSC CMS",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "Dsc\\Plugins\\SamplePlugin\\": "src/"
+        }
+    }
+}

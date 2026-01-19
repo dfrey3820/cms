@@ -1,0 +1,10 @@
+{
+    "name": "dsc/sample-theme",
+    "description": "A sample theme for DSC CMS",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "Dsc\\Themes\\SampleTheme\\": "src/"
+        }
+    }
+}
