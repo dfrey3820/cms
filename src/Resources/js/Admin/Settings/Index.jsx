@@ -1,10 +1,26 @@
 import React, { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
+import { route } from 'ziggy-js';
 import { HomeIcon, DocumentTextIcon, PencilSquareIcon, Cog6ToothIcon, ArrowPathIcon, PuzzlePieceIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 
 export default function Index({ settings }) {
     const [activeTab, setActiveTab] = useState('site');
-    const { data, setData, post, processing, errors } = useForm({});
+    const { data, setData, post, processing, errors, reset } = useForm({});
+
+    // Initialize form data with existing settings
+    React.useEffect(() => {
+        if (settings) {
+            const initialData = {};
+            Object.keys(settings).forEach(group => {
+                if (settings[group]) {
+                    settings[group].forEach(setting => {
+                        initialData[setting.key] = setting.value || '';
+                    });
+                }
+            });
+            reset(initialData);
+        }
+    }, [settings, reset]);
 
     const menuItems = [
         { name: 'Dashboard', href: '/admin', icon: HomeIcon },
@@ -29,7 +45,15 @@ export default function Index({ settings }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        post(route('cms.admin.settings.update'));
+        post(route('cms.admin.settings.update'), {
+            onSuccess: () => {
+                // Show success message or redirect
+                alert('Settings updated successfully!');
+            },
+            onError: (errors) => {
+                console.error('Settings update failed:', errors);
+            }
+        });
     };
 
     const renderTabContent = () => {

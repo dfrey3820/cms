@@ -48,12 +48,44 @@ export default function Index() {
 
             {/* Main content */}
             <div className="flex-1 p-8">
-                <h1 className="text-3xl font-bold text-gray-800 mb-4">Posts</h1>
-                <p className="text-gray-600 mb-8">Manage your blog posts here.</p>
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-800">Plugins</h1>
+                        <p className="text-gray-600">Manage your CMS plugins</p>
+                    </div>
+                    <Link
+                        href="/admin/plugins/create"
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                    >
+                        Add Plugin
+                    </Link>
+                </div>
 
-                {/* Posts interface placeholder */}
-                <div className="bg-white p-6 rounded-lg shadow">
-                    <p>Posts management interface will be implemented here.</p>
+                {/* Plugins list */}
+                <div className="bg-white rounded-lg shadow">
+                    <div className="p-6">
+                        <div className="space-y-4">
+                            {/* Skeleton loading items */}
+                            {Array.from({ length: 3 }).map((_, index) => (
+                                <div key={index} className="animate-pulse flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                                    <div className="flex items-center space-x-4">
+                                        <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
+                                        <div>
+                                            <div className="h-4 bg-gray-200 rounded w-48 mb-2"></div>
+                                            <div className="h-3 bg-gray-200 rounded w-64"></div>
+                                        </div>
+                                    </div>
+                                    <div className="flex space-x-2">
+                                        <div className="h-8 bg-gray-200 rounded w-16"></div>
+                                        <div className="h-8 bg-gray-200 rounded w-20"></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="mt-4 text-center text-gray-500">
+                            <p>No plugins installed. <Link href="/admin/plugins/create" className="text-blue-600 hover:text-blue-800">Add your first plugin</Link></p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

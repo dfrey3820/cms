@@ -50,5 +50,17 @@ class CmsSeeder extends Seeder
         Setting::set('db_database', session('install_db_database', 'laravel'), 'string', 'database');
         Setting::set('db_username', session('install_db_username', 'root'), 'string', 'database');
         Setting::set('db_password', session('install_db_password', ''), 'string', 'database');
+
+        // System settings
+        Setting::set('debug_mode', 'false', 'boolean', 'system');
+        Setting::set('maintenance_mode', 'false', 'boolean', 'system');
+        Setting::set('cache_enabled', 'true', 'boolean', 'system');
+        Setting::set('session_lifetime', '120', 'integer', 'system');
+
+        // Server settings
+        Setting::set('server_software', 'Laravel', 'string', 'server');
+        Setting::set('php_version', PHP_VERSION, 'string', 'server');
+        Setting::set('max_upload_size', ini_get('upload_max_filesize'), 'string', 'server');
+        Setting::set('memory_limit', ini_get('memory_limit'), 'string', 'server');
     }
 }
