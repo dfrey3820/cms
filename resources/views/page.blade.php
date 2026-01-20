@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $page->title }}</title>
     <link rel="stylesheet" href="https://cdn.tailwindcss.com">
+    @if(file_exists(public_path('themes/default/template.css')))
+        <link rel="stylesheet" href="{{ asset('themes/default/template.css') }}">
+    @endif
 </head>
 <body class="bg-gray-100">
     <div class="container mx-auto px-4 py-8">
@@ -22,5 +25,8 @@
             <p>Powered by Buni CMS</p>
         </footer>
     </div>
+    @if(file_exists(public_path('themes/default/template.js')))
+        <script src="{{ asset('themes/default/template.js') }}"></script>
+    @endif
 </body>
 </html>
