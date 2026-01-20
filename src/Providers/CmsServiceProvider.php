@@ -26,6 +26,25 @@ class CmsServiceProvider extends ServiceProvider
 
     public function boot()
     {
+        // Check if .env file exists and create minimal one if needed
+        $envFile = base_path('.env');
+        if (!file_exists($envFile) || !is_readable($envFile) || trim(file_get_contents($envFile)) === '') {
+            // Create minimal .env file with APP_KEY for Laravel to boot
+            $minimalEnv = "APP_NAME=Laravel\nAPP_ENV=local\nAPP_KEY=\nAPP_DEBUG=true\nAPP_URL=http://localhost\n";
+            File::put($envFile, $minimalEnv);
+
+            // Generate APP_KEY immediately
+            try {
+                Artisan::call('key:generate', ['--force' => true]);
+            } catch (\Exception $e) {
+                // If key generation fails, set a fallback key
+                $fallbackKey = 'base64:' . base64_encode(random_bytes(32));
+                $envContent = File::get($envFile);
+                $envContent = preg_replace('/^APP_KEY=.*$/m', 'APP_KEY=' . $fallbackKey, $envContent);
+                File::put($envFile, $envContent);
+            }
+        }
+
         $this->loadRoutesFrom(__DIR__.'/../../routes/cms.php');
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../../resources/views', 'cms');

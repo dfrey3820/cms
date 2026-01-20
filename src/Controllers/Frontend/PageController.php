@@ -182,11 +182,6 @@ class PageController extends Controller
         // Update .env first
         $this->updateEnv(array_merge($dbData, $siteData, $mailData));
 
-        // Generate APP_KEY if not set
-        if (empty(config('app.key'))) {
-            \Illuminate\Support\Facades\Artisan::call('key:generate', ['--force' => true]);
-        }
-
         // For SQLite databases, ensure the database file exists
         if (session('install_db_connection') === 'sqlite') {
             $dbPath = session('install_db_database');
