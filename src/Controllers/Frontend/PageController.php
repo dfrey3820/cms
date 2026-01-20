@@ -15,7 +15,14 @@ class PageController extends Controller
     public function show($slug = null)
     {
         // Check if CMS is installed (has users)
-        if (!Schema::hasTable('users') || \App\Models\User::count() == 0) {
+        try {
+            $isInstalled = Schema::hasTable('users') && \App\Models\User::count() > 0;
+        } catch (\Exception $e) {
+            // Database doesn't exist or is not accessible, show installation
+            $isInstalled = false;
+        }
+
+        if (!$isInstalled) {
             $step = request('step', 1);
             return $this->renderInstallStep($step);
         }
@@ -114,6 +121,26 @@ class PageController extends Controller
 
         // Update .env first
         $this->updateEnv(array_merge($dbData, $siteData, $mailData));
+
+        // For SQLite databases, ensure the database file exists
+        if (strtolower(session('install_db_database', '')) === 'sqlite' ||
+            str_ends_with(strtolower(session('install_db_database', '')), '.sqlite') ||
+            str_ends_with(strtolower(session('install_db_database', '')), '.db')) {
+            $dbPath = session('install_db_database');
+            if (!str_starts_with($dbPath, '/')) {
+                // If it's not an absolute path, make it relative to the database directory
+                $dbPath = database_path($dbPath);
+            }
+            if (!File::exists($dbPath)) {
+                // Create the directory if it doesn't exist
+                $dbDir = dirname($dbPath);
+                if (!File::exists($dbDir)) {
+                    File::makeDirectory($dbDir, 0755, true);
+                }
+                // Create an empty SQLite database file
+                File::put($dbPath, '');
+            }
+        }
 
         // Run seeder logic inline to create roles and settings
         $this->runSeederLogic();
@@ -525,7 +552,10 @@ class PageController extends Controller
                     </label>
                     <input id="db_database" name="db_database" type="text" required
                            class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-blue-500 transition-all duration-200 bg-white shadow-sm"
-                           placeholder="laravel" />
+                           placeholder="laravel (MySQL) or database/database.sqlite (SQLite)" />
+                    <p class="mt-1 text-xs text-gray-500">
+                        For MySQL/PostgreSQL: database name. For SQLite: file path like \'database.sqlite\' or absolute path.
+                    </p>
                 </div>
 
                 <div class="form-group">

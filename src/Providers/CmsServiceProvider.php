@@ -28,9 +28,14 @@ class CmsServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../../resources/views', 'cms');
 
-        // Auto-run migrations if tables don't exist
-        if (!Schema::hasTable('pages')) {
-            Artisan::call('migrate', ['--force' => true]);
+        // Auto-run migrations if tables don't exist and database is accessible
+        try {
+            if (!Schema::hasTable('pages')) {
+                Artisan::call('migrate', ['--force' => true]);
+            }
+        } catch (\Exception $e) {
+            // Database might not be set up yet, skip migration for now
+            // This can happen during installation or if database config is invalid
         }
 
         if ($this->app->runningInConsole()) {
