@@ -152,6 +152,15 @@ class PageController extends Controller
             'install_mail_driver', 'install_mail_host', 'install_mail_port', 'install_mail_username', 'install_mail_password'
         ]);
 
+        // Check if this is an AJAX request
+        if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return response()->json([
+                'success' => true,
+                'message' => 'Installation completed successfully',
+                'redirect' => '/admin'
+            ]);
+        }
+
         return redirect('/admin');
     }
 
@@ -386,7 +395,7 @@ class PageController extends Controller
 
             <!-- Footer -->
             <div class="text-center mt-8 text-gray-500 text-sm animate-fade-in-up" style="animation-delay: 0.8s;">
-                <p>© 2024 Buni CMS. Powered by Laravel & React.</p>
+                <p>© 2026 Buni CMS. <a href="https://www.dsc.co.ke" target="_blank" class="text-blue-600 hover:text-blue-800 transition-colors duration-200">Powered by DSC</a>.</p>
             </div>
         </div>
     </div>
@@ -454,7 +463,7 @@ class PageController extends Controller
                            placeholder="127.0.0.1" />
                 </div>
 
-                <div class="form-group">
+                <div class="form-group md:col-span-2">
                     <label for="db_port" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
                         <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
@@ -628,7 +637,7 @@ class PageController extends Controller
                 <p class="text-gray-600">Create your administrator account</p>
             </div>
 
-            <div class="space-y-6">
+            <div id="install-form" class="space-y-6">
                 <div class="form-group">
                     <label for="name" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
                         <svg class="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -676,7 +685,168 @@ class PageController extends Controller
                            class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-purple-500 transition-all duration-200 bg-white shadow-sm"
                            placeholder="Confirm your password" />
                 </div>
+
+                <div class="pt-4">
+                    <button type="button" onclick="startInstallation()"
+                            class="w-full brand-primary text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                        <span class="flex items-center justify-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                            Complete Installation
+                        </span>
+                    </button>
+                </div>
             </div>
+
+            <div id="install-progress" class="hidden space-y-6">
+                <div class="text-center">
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full mb-4 shadow-lg">
+                        <svg class="w-8 h-8 text-white animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-2">Installing Buni CMS</h3>
+                    <p class="text-gray-600">Please wait while we set up your CMS...</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="flex justify-between text-sm font-medium text-gray-700">
+                        <span>Installation Progress</span>
+                        <span id="progress-percent">0%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                        <div id="progress-bar" class="bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 rounded-xl p-4 space-y-3">
+                    <h4 class="font-semibold text-gray-800 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Installation Steps
+                    </h4>
+                    <div id="install-steps" class="space-y-2 text-sm">
+                        <div class="flex items-center text-gray-500">
+                            <div class="w-2 h-2 bg-gray-300 rounded-full mr-3"></div>
+                            <span>Updating configuration files...</span>
+                        </div>
+                        <div class="flex items-center text-gray-500">
+                            <div class="w-2 h-2 bg-gray-300 rounded-full mr-3"></div>
+                            <span>Creating database tables...</span>
+                        </div>
+                        <div class="flex items-center text-gray-500">
+                            <div class="w-2 h-2 bg-gray-300 rounded-full mr-3"></div>
+                            <span>Setting up user roles and permissions...</span>
+                        </div>
+                        <div class="flex items-center text-gray-500">
+                            <div class="w-2 h-2 bg-gray-300 rounded-full mr-3"></div>
+                            <span>Creating admin account...</span>
+                        </div>
+                        <div class="flex items-center text-gray-500">
+                            <div class="w-2 h-2 bg-gray-300 rounded-full mr-3"></div>
+                            <span>Installing default theme...</span>
+                        </div>
+                        <div class="flex items-center text-gray-500">
+                            <div class="w-2 h-2 bg-gray-300 rounded-full mr-3"></div>
+                            <span>Finalizing installation...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                async function startInstallation() {
+                    const form = document.getElementById("install-form");
+                    const progress = document.getElementById("install-progress");
+                    const progressBar = document.getElementById("progress-bar");
+                    const progressPercent = document.getElementById("progress-percent");
+                    const steps = document.querySelectorAll("#install-steps > div");
+
+                    // Get form data
+                    const formData = new FormData();
+                    formData.append("step", "3");
+                    formData.append("name", document.getElementById("name").value);
+                    formData.append("email", document.getElementById("email").value);
+                    formData.append("password", document.getElementById("password").value);
+                    formData.append("password_confirmation", document.getElementById("password_confirmation").value);
+
+                    // Validate form
+                    if (!document.getElementById("name").value || !document.getElementById("email").value ||
+                        !document.getElementById("password").value || !document.getElementById("password_confirmation").value) {
+                        alert("Please fill in all required fields.");
+                        return;
+                    }
+
+                    if (document.getElementById("password").value !== document.getElementById("password_confirmation").value) {
+                        alert("Passwords do not match.");
+                        return;
+                    }
+
+                    // Hide form, show progress
+                    form.classList.add("hidden");
+                    progress.classList.remove("hidden");
+
+                    try {
+                        // Simulate progress steps
+                        const progressSteps = [
+                            { percent: 10, message: "Updating configuration files...", delay: 500 },
+                            { percent: 25, message: "Creating database tables...", delay: 1000 },
+                            { percent: 45, message: "Setting up user roles and permissions...", delay: 800 },
+                            { percent: 65, message: "Creating admin account...", delay: 600 },
+                            { percent: 85, message: "Installing default theme...", delay: 700 },
+                            { percent: 100, message: "Finalizing installation...", delay: 500 }
+                        ];
+
+                        for (let i = 0; i < progressSteps.length; i++) {
+                            const step = progressSteps[i];
+                            const stepElement = steps[i];
+
+                            // Update progress bar
+                            progressBar.style.width = step.percent + "%";
+                            progressPercent.textContent = step.percent + "%";
+
+                            // Update step status
+                            if (stepElement) {
+                                stepElement.querySelector("div").className = "w-2 h-2 bg-blue-500 rounded-full mr-3";
+                                stepElement.querySelector("span").className = "text-blue-600 font-medium";
+                            }
+
+                            await new Promise(resolve => setTimeout(resolve, step.delay));
+                        }
+
+                        // Submit the form
+                        const response = await fetch(window.location.href, {
+                            method: "POST",
+                            body: formData,
+                            headers: {
+                                "X-Requested-With": "XMLHttpRequest"
+                            }
+                        });
+
+                        if (response.ok) {
+                            // Redirect to admin
+                            window.location.href = "/admin";
+                        } else {
+                            throw new Error("Installation failed");
+                        }
+
+                    } catch (error) {
+                        console.error("Installation error:", error);
+                        alert("Installation failed. Please check your configuration and try again.");
+                        // Reset UI
+                        form.classList.remove("hidden");
+                        progress.classList.add("hidden");
+                        progressBar.style.width = "0%";
+                        progressPercent.textContent = "0%";
+                        steps.forEach(step => {
+                            step.querySelector("div").className = "w-2 h-2 bg-gray-300 rounded-full mr-3";
+                            step.querySelector("span").className = "text-gray-500";
+                        });
+                    }
+                }
+            </script>
         </div>';
     }
 }
