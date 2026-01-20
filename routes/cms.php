@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use Buni\Cms\Controllers\Admin\DashboardController;
 use Buni\Cms\Controllers\Admin\PageController;
 use Buni\Cms\Controllers\Admin\PostController;
+use Buni\Cms\Controllers\Admin\SettingsController;
+use Buni\Cms\Controllers\Admin\UpdatesController;
 use Buni\Cms\Controllers\Frontend\PageController as FrontendPageController;
 
 Route::prefix(config('cms.admin_prefix'))->middleware(['web'])->group(function () {
@@ -20,6 +22,11 @@ Route::prefix(config('cms.admin_prefix'))->middleware(['web', 'auth'])->group(fu
     Route::get('/settings', [SettingsController::class, 'index'])->name('cms.admin.settings');
     Route::post('/settings', [SettingsController::class, 'update'])->name('cms.admin.settings.update');
     Route::post('/settings/editor', [SettingsController::class, 'updateEditor'])->name('cms.admin.settings.editor.update');
+    Route::get('/updates', [UpdatesController::class, 'index'])->name('cms.admin.updates');
+    Route::post('/updates/check', [UpdatesController::class, 'checkForUpdates'])->name('cms.admin.updates.check');
+    Route::post('/updates/install', [UpdatesController::class, 'installUpdate'])->name('cms.admin.updates.install');
+    Route::post('/updates/migrations', [UpdatesController::class, 'runMigrations'])->name('cms.admin.updates.migrations');
+    Route::post('/updates/maintenance', [UpdatesController::class, 'toggleMaintenance'])->name('cms.admin.updates.maintenance');
     Route::post('/logout', [FrontendPageController::class, 'logout'])->name('cms.admin.logout');
 });
 
