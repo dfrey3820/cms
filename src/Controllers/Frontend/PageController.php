@@ -12,6 +12,12 @@ use Inertia\Inertia;
 
 class PageController extends Controller
 {
+    public function showInstall()
+    {
+        $step = request('step', 1);
+        return $this->renderInstallStep($step);
+    }
+
     public function show($slug = null)
     {
         // Check if .env file exists and is valid
@@ -77,6 +83,13 @@ class PageController extends Controller
                 ]);
             }
 
+            // Test database connection before proceeding
+            try {
+                $this->testDatabaseConnection($request->all());
+            } catch (\Exception $e) {
+                return back()->withErrors(['db_connection' => 'Database connection failed: ' . $e->getMessage()])->withInput();
+            }
+
             // Store in session
             session([
                 'install_db_connection' => $dbConnection,
@@ -94,12 +107,14 @@ class PageController extends Controller
             // Validate site settings
             $request->validate([
                 'site_name' => 'required|string|max:255',
+                'site_url' => 'required|url',
                 'timezone' => 'required|string',
             ]);
 
             // Store in session
             session([
                 'install_site_name' => $request->site_name,
+                'install_site_url' => $request->site_url,
                 'install_timezone' => $request->timezone,
             ]);
 
@@ -110,7 +125,7 @@ class PageController extends Controller
             // Validate admin account
             $request->validate([
                 'name' => 'required|string|max:255',
-                'email' => 'required|string|email|max:255|unique:users',
+                'email' => 'required|string|email|max:255',
                 'password' => 'required|string|min:8|confirmed',
             ]);
 
@@ -167,7 +182,9 @@ class PageController extends Controller
 
         $siteData = [
             'APP_NAME' => session('install_site_name'),
+            'APP_URL' => session('install_site_url'),
             'APP_TIMEZONE' => session('install_timezone'),
+            'SESSION_DRIVER' => 'file', // Use file sessions during installation
         ];
 
         $mailData = [
@@ -181,6 +198,10 @@ class PageController extends Controller
 
         // Update .env first
         $this->updateEnv(array_merge($dbData, $siteData, $mailData));
+
+        // Reload configuration after .env changes
+        \Artisan::call('config:clear');
+        \Artisan::call('config:cache');
 
         // For SQLite databases, ensure the database file exists
         if (session('install_db_connection') === 'sqlite') {
@@ -234,7 +255,7 @@ class PageController extends Controller
         // Clear session
         session()->forget([
             'install_db_connection', 'install_db_host', 'install_db_port', 'install_db_database', 'install_db_username', 'install_db_password',
-            'install_site_name', 'install_timezone',
+            'install_site_name', 'install_site_url', 'install_timezone',
             'install_admin_name', 'install_admin_email', 'install_admin_password',
             'install_mail_driver', 'install_mail_host', 'install_mail_port', 'install_mail_username', 'install_mail_password', 'install_mail_encryption'
         ]);
@@ -249,6 +270,47 @@ class PageController extends Controller
         }
 
         return redirect('/admin/login');
+    }
+
+    private function testDatabaseConnection($data)
+    {
+        $connection = $data['db_connection'];
+
+        // Create a temporary database configuration
+        $config = [
+            'driver' => $connection,
+            'database' => $data['db_database'],
+        ];
+
+        if ($connection !== 'sqlite') {
+            $config = array_merge($config, [
+                'host' => $data['db_host'],
+                'port' => $data['db_port'],
+                'username' => $data['db_username'],
+                'password' => $data['db_password'] ?? '',
+            ]);
+        } else {
+            // For SQLite, ensure the path is absolute
+            if (!str_starts_with($data['db_database'], '/')) {
+                $config['database'] = database_path($data['db_database']);
+            }
+        }
+
+        // Create a temporary connection to test
+        try {
+            // Use PDO directly to test the connection
+            if ($connection === 'sqlite') {
+                $pdo = new \PDO('sqlite:' . $config['database']);
+            } else {
+                $dsn = $connection . ':host=' . $config['host'] . ';port=' . $config['port'] . ';dbname=' . $config['database'];
+                $pdo = new \PDO($dsn, $config['username'], $config['password']);
+            }
+
+            // Try a simple query to ensure the connection works
+            $pdo->query('SELECT 1');
+        } catch (\Exception $e) {
+            throw new \Exception('Failed to connect to database: ' . $e->getMessage());
+        }
     }
 
     private function updateEnv($data)
@@ -632,6 +694,8 @@ EOT;
             $html .= $this->renderAdminStep();
         } elseif ($step == 4) {
             $html .= $this->renderMailStep();
+        } elseif ($step == 5) {
+            $html .= $this->renderInstallCompleteStep();
         }
 
         $buttonText = $step < count($steps) ? 'Continue' : 'Install CMS';
@@ -738,18 +802,18 @@ EOT;
                     // Show fields for other databases
                     if (selectedEngine === \'mysql\') {
                         mysqlFields.forEach(field => field.style.display = \'block\');
-                        dbHostInput.value = dbHostInput.value || \'127.0.0.1\';
-                        dbPortInput.value = dbPortInput.value || \'3306\';
+                        dbHostInput.value = \'127.0.0.1\';
+                        dbPortInput.value = \'3306\';
                         dbDatabaseInput.placeholder = \'laravel\';
                     } else if (selectedEngine === \'pgsql\') {
                         pgsqlFields.forEach(field => field.style.display = \'block\');
-                        dbHostInput.value = dbHostInput.value || \'127.0.0.1\';
-                        dbPortInput.value = dbPortInput.value || \'5432\';
+                        dbHostInput.value = \'127.0.0.1\';
+                        dbPortInput.value = \'5432\';
                         dbDatabaseInput.placeholder = \'laravel\';
                     } else if (selectedEngine === \'sqlsrv\') {
                         sqlsrvFields.forEach(field => field.style.display = \'block\');
-                        dbHostInput.value = dbHostInput.value || \'127.0.0.1\';
-                        dbPortInput.value = dbPortInput.value || \'1433\';
+                        dbHostInput.value = \'127.0.0.1\';
+                        dbPortInput.value = \'1433\';
                         dbDatabaseInput.placeholder = \'laravel\';
                     }
 
@@ -879,6 +943,9 @@ EOT;
         // Get all PHP timezones
         $timezones = \DateTimeZone::listIdentifiers(\DateTimeZone::ALL);
 
+        // Auto-detect current URL
+        $currentUrl = request()->getSchemeAndHttpHost();
+
         $timezoneOptions = '';
         foreach ($timezones as $timezone) {
             $selected = ($timezone === 'UTC') ? 'selected' : '';
@@ -908,6 +975,21 @@ EOT;
                         <input id="site_name" name="site_name" type="text" required
                                class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-green-500 transition-all duration-200 bg-white shadow-sm"
                                placeholder="My Awesome Website" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="site_url" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                            <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                            </svg>
+                            Site URL
+                        </label>
+                        <input id="site_url" name="site_url" type="url" required
+                               class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-green-500 transition-all duration-200 bg-white shadow-sm"
+                               placeholder="https://example.com" value="' . htmlspecialchars($currentUrl) . '" />
+                        <p class="mt-1 text-xs text-gray-500">
+                            The base URL of your website (auto-detected from current request)
+                        </p>
                     </div>
 
                     <div class="form-group">
@@ -1089,5 +1171,293 @@ EOT;
                 </div>
             </div>
         </div>';
+    }
+
+    private function renderInstallCompleteStep()
+    {
+        return '<div class="space-y-8">
+            <div class="text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full mb-4 shadow-lg">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-900 mb-2">Installation Complete!</h3>
+                <p class="text-gray-600">Your Buni CMS has been successfully installed and configured.</p>
+            </div>
+
+            <div class="bg-green-50 border border-green-200 rounded-xl p-6">
+                <div class="flex items-center mb-4">
+                    <svg class="w-6 h-6 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <h4 class="text-lg font-semibold text-green-800">Installation Successful</h4>
+                </div>
+                <p class="text-green-700 mb-4">
+                    Your CMS is now ready to use. You can access the admin panel to start creating content.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <a href="/admin/login" class="inline-flex items-center justify-center px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
+                        </svg>
+                        Go to Admin Panel
+                    </a>
+                    <a href="/" class="inline-flex items-center justify-center px-6 py-3 border border-green-600 text-green-600 font-semibold rounded-lg hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                        </svg>
+                        View Homepage
+                    </a>
+                </div>
+            </div>
+        </div>';
+    }
+
+    public function showLogin()
+    {
+        return $this->renderLoginPage();
+    }
+
+    public function login(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+        ]);
+
+        if (\Illuminate\Support\Facades\Auth::attempt($request->only('email', 'password'), $request->boolean('remember'))) {
+            $request->session()->regenerate();
+            return redirect()->intended('/admin');
+        }
+
+        return back()->withErrors([
+            'email' => 'The provided credentials do not match our records.',
+        ])->withInput($request->only('email'));
+    }
+
+    public function logout(Request $request)
+    {
+        \Illuminate\Support\Facades\Auth::logout();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect('/');
+    }
+
+    private function renderLoginPage()
+    {
+        $errors = session('errors') ?: collect();
+        $html = '<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="' . csrf_token() . '">
+    <title>Admin Login - Buni CMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        @keyframes bounceIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.3);
+            }
+            50% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            80% {
+                transform: translateY(-10px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .slide-in-right {
+            animation: slideInRight 0.6s ease-out;
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        .bounce-in {
+            animation: bounceIn 1s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div class="bounce-in">
+            <div class="text-center">
+                <h2 class="mt-6 text-3xl font-extrabold text-gray-900">
+                    Admin Login
+                </h2>
+                <p class="mt-2 text-sm text-gray-600">
+                    Sign in to access the admin panel
+                </p>
+            </div>
+        </div>
+
+        <div class="fade-in-up mt-8">
+            <div class="bg-white py-8 px-6 shadow-xl rounded-lg border border-gray-200">
+                <form class="space-y-6" action="' . route('cms.admin.login') . '" method="POST">
+                    ' . csrf_field() . '
+
+                    <!-- Email -->
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                            Email Address
+                        </label>
+                        <div class="relative">
+                            <input
+                                id="email"
+                                name="email"
+                                type="email"
+                                autocomplete="email"
+                                required
+                                value="' . old('email') . '"
+                                class="appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm transition-all duration-200"
+                                placeholder="Enter your email"
+                            >
+                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        ' . ($errors->has('email') ? '<p class="mt-1 text-sm text-red-600">' . $errors->first('email') . '</p>' : '') . '
+                    </div>
+
+                    <!-- Password -->
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                            Password
+                        </label>
+                        <div class="relative">
+                            <input
+                                id="password"
+                                name="password"
+                                type="password"
+                                autocomplete="current-password"
+                                required
+                                class="appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm transition-all duration-200"
+                                placeholder="Enter your password"
+                            >
+                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        ' . ($errors->has('password') ? '<p class="mt-1 text-sm text-red-600">' . $errors->first('password') . '</p>' : '') . '
+                    </div>
+
+                    <!-- Remember Me -->
+                    <div class="flex items-center">
+                        <input
+                            id="remember"
+                            name="remember"
+                            type="checkbox"
+                            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded transition-all duration-200"
+                        >
+                        <label for="remember" class="ml-2 block text-sm text-gray-900">
+                            Remember me
+                        </label>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div>
+                        <button
+                            type="submit"
+                            class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-105"
+                        >
+                            <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                                <svg class="h-5 w-5 text-blue-500 group-hover:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
+                                </svg>
+                            </span>
+                            Sign in
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Back to Home -->
+                <div class="mt-6 text-center">
+                    <a href="/" class="text-sm text-blue-600 hover:text-blue-500 transition-colors duration-200">
+                        ← Back to homepage
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add some interactive enhancements
+        document.addEventListener("DOMContentLoaded", function() {
+            // Focus on email field
+            const emailField = document.getElementById("email");
+            if (emailField && !emailField.value) {
+                emailField.focus();
+            }
+
+            // Add loading state to form submission
+            const form = document.querySelector("form");
+            const submitButton = document.querySelector("button[type=\"submit\"]");
+
+            form.addEventListener("submit", function() {
+                submitButton.disabled = true;
+                submitButton.innerHTML = `
+                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Signing in...
+                `;
+            });
+        });
+    </script>
+</body>
+</html>';
+
+        return response($html);
     }
 }
