@@ -4,6 +4,8 @@ namespace Buni\Cms\Controllers\Frontend;
 
 use Illuminate\Support\Facades\File;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Schema;
+use Inertia\Inertia;
 
 class PageController extends Controller
 {
