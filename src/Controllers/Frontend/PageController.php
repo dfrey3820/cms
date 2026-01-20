@@ -75,32 +75,64 @@ class PageController extends Controller
         }
 
         if ($step == 2) {
-            // Validate site and mail settings
+            // Validate site settings
             $request->validate([
                 'site_name' => 'required|string|max:255',
                 'timezone' => 'required|string',
-                'mail_driver' => 'required|string',
-                'mail_host' => 'nullable|string',
-                'mail_port' => 'nullable|integer',
-                'mail_username' => 'nullable|string',
-                'mail_password' => 'nullable|string',
             ]);
 
             // Store in session
             session([
                 'install_site_name' => $request->site_name,
                 'install_timezone' => $request->timezone,
-                'install_mail_driver' => $request->mail_driver,
-                'install_mail_host' => $request->mail_host,
-                'install_mail_port' => $request->mail_port,
-                'install_mail_username' => $request->mail_username,
-                'install_mail_password' => $request->mail_password,
             ]);
 
             return redirect('/install?step=3');
         }
 
-        // Step 3: Admin account and final install
+        if ($step == 3) {
+            // Validate admin account
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:users',
+                'password' => 'required|string|min:8|confirmed',
+            ]);
+
+            // Store in session
+            session([
+                'install_admin_name' => $request->name,
+                'install_admin_email' => $request->email,
+                'install_admin_password' => $request->password,
+            ]);
+
+            return redirect('/install?step=4');
+        }
+
+        if ($step == 4) {
+            // Validate mail settings
+            $request->validate([
+                'mail_driver' => 'required|string',
+                'mail_host' => 'nullable|string',
+                'mail_port' => 'nullable|integer',
+                'mail_username' => 'nullable|string',
+                'mail_password' => 'nullable|string',
+                'mail_encryption' => 'nullable|string|in:tls,ssl,',
+            ]);
+
+            // Store in session
+            session([
+                'install_mail_driver' => $request->mail_driver,
+                'install_mail_host' => $request->mail_host,
+                'install_mail_port' => $request->mail_port,
+                'install_mail_username' => $request->mail_username,
+                'install_mail_password' => $request->mail_password,
+                'install_mail_encryption' => $request->mail_encryption,
+            ]);
+
+            return redirect('/install?step=5');
+        }
+
+        // Step 5: Final installation
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
@@ -128,6 +160,7 @@ class PageController extends Controller
             'MAIL_PORT' => session('install_mail_port'),
             'MAIL_USERNAME' => session('install_mail_username'),
             'MAIL_PASSWORD' => session('install_mail_password'),
+            'MAIL_ENCRYPTION' => session('install_mail_encryption'),
         ];
 
         // Update .env first
@@ -151,14 +184,17 @@ class PageController extends Controller
             }
         }
 
+        // Run migrations (Laravel first, then CMS)
+        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+
         // Run seeder logic inline to create roles and settings
         $this->runSeederLogic();
 
         // Create admin user
         $user = \App\Models\User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'name' => session('install_admin_name'),
+            'email' => session('install_admin_email'),
+            'password' => Hash::make(session('install_admin_password')),
         ]);
 
         // Assign super-admin role
@@ -183,7 +219,8 @@ class PageController extends Controller
         session()->forget([
             'install_db_connection', 'install_db_host', 'install_db_port', 'install_db_database', 'install_db_username', 'install_db_password',
             'install_site_name', 'install_timezone',
-            'install_mail_driver', 'install_mail_host', 'install_mail_port', 'install_mail_username', 'install_mail_password'
+            'install_admin_name', 'install_admin_email', 'install_admin_password',
+            'install_mail_driver', 'install_mail_host', 'install_mail_port', 'install_mail_username', 'install_mail_password', 'install_mail_encryption'
         ]);
 
         // Check if this is an AJAX request
@@ -249,7 +286,7 @@ class PageController extends Controller
         \Buni\Cms\Models\Setting::set('mail_port', session('install_mail_port', '587'), 'string', 'mail');
         \Buni\Cms\Models\Setting::set('mail_username', session('install_mail_username', ''), 'string', 'mail');
         \Buni\Cms\Models\Setting::set('mail_password', session('install_mail_password', ''), 'string', 'mail');
-        \Buni\Cms\Models\Setting::set('mail_encryption', 'tls', 'string', 'mail');
+        \Buni\Cms\Models\Setting::set('mail_encryption', session('install_mail_encryption', 'tls'), 'string', 'mail');
         \Buni\Cms\Models\Setting::set('mail_from_address', '', 'string', 'mail');
         \Buni\Cms\Models\Setting::set('mail_from_name', session('install_site_name', 'My CMS Site'), 'string', 'mail');
 
@@ -267,6 +304,8 @@ class PageController extends Controller
             1 => 'Database Configuration',
             2 => 'Site Configuration',
             3 => 'Admin Account',
+            4 => 'Mail Configuration',
+            5 => 'Installation Complete',
         ];
 
         $html = '<!DOCTYPE html>
@@ -401,6 +440,67 @@ class PageController extends Controller
         .step-transition {
             animation: fadeInUp 0.6s ease-out;
         }
+
+        /* Skeleton Loading Styles */
+        @keyframes skeleton-loading {
+            0% {
+                background-position: -200px 0;
+            }
+            100% {
+                background-position: calc(200px + 100%) 0;
+            }
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200px 100%;
+            animation: skeleton-loading 1.5s infinite;
+            border-radius: 4px;
+        }
+
+        .skeleton-text {
+            height: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .skeleton-input {
+            height: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .skeleton-button {
+            height: 3rem;
+            width: 120px;
+            margin: 0 auto;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #009cde;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 via-white to-indigo-50 min-h-screen">
@@ -449,6 +549,8 @@ class PageController extends Controller
             $html .= $this->renderSiteStep();
         } elseif ($step == 3) {
             $html .= $this->renderAdminStep();
+        } elseif ($step == 4) {
+            $html .= $this->renderMailStep();
         }
 
         $buttonText = $step < count($steps) ? 'Continue' : 'Install CMS';
@@ -485,6 +587,12 @@ class PageController extends Controller
             const originalText = button.innerHTML;
             button.innerHTML = \'<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Processing...\';
             button.disabled = true;
+
+            // Show loading overlay
+            const overlay = document.createElement(\'div\');
+            overlay.className = \'loading-overlay\';
+            overlay.innerHTML = \'<div class="text-center"><div class="loading-spinner mb-4"></div><p class="text-gray-600 font-medium">Processing your request...</p></div>\';
+            document.body.appendChild(overlay);
         });
 
         // Animate form groups on scroll
@@ -680,6 +788,15 @@ class PageController extends Controller
 
     private function renderSiteStep()
     {
+        // Get all PHP timezones
+        $timezones = \DateTimeZone::listIdentifiers(\DateTimeZone::ALL);
+
+        $timezoneOptions = '';
+        foreach ($timezones as $timezone) {
+            $selected = ($timezone === 'UTC') ? 'selected' : '';
+            $timezoneOptions .= '<option value="' . $timezone . '" ' . $selected . '>' . $timezone . '</option>';
+        }
+
         return '<div class="space-y-8">
             <div class="text-center">
                 <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full mb-4 shadow-lg">
@@ -688,7 +805,7 @@ class PageController extends Controller
                     </svg>
                 </div>
                 <h3 class="text-2xl font-bold text-gray-900 mb-2">Site Configuration</h3>
-                <p class="text-gray-600">Configure your website details and mail settings</p>
+                <p class="text-gray-600">Configure your website basic settings</p>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -714,74 +831,107 @@ class PageController extends Controller
                         </label>
                         <select id="timezone" name="timezone" required
                                 class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-green-500 transition-all duration-200 bg-white shadow-sm">
-                            <option value="UTC">UTC</option>
-                            <option value="America/New_York">America/New_York</option>
-                            <option value="Europe/London">Europe/London</option>
-                            <option value="Asia/Tokyo">Asia/Tokyo</option>
+                            ' . $timezoneOptions . '
                         </select>
                     </div>
                 </div>
+            </div>
+        </div>';
+    }
 
+    private function renderMailStep()
+    {
+        return '<div class="space-y-8">
+            <div class="text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full mb-4 shadow-lg">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-900 mb-2">Mail Configuration</h3>
+                <p class="text-gray-600">Configure your email settings for notifications and communications</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div class="space-y-6">
                     <div class="form-group">
                         <label for="mail_driver" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                            <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                             </svg>
                             Mail Driver
                         </label>
                         <select id="mail_driver" name="mail_driver" required
-                                class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-green-500 transition-all duration-200 bg-white shadow-sm">
+                                class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-purple-500 transition-all duration-200 bg-white shadow-sm">
                             <option value="smtp">SMTP</option>
                             <option value="mailgun">Mailgun</option>
                             <option value="ses">SES</option>
+                            <option value="sendmail">Sendmail</option>
+                            <option value="log">Log (for development)</option>
                         </select>
                     </div>
 
                     <div class="form-group">
                         <label for="mail_host" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                            <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
                             </svg>
                             Mail Host
                         </label>
                         <input id="mail_host" name="mail_host" type="text"
-                               class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-green-500 transition-all duration-200 bg-white shadow-sm"
+                               class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-purple-500 transition-all duration-200 bg-white shadow-sm"
                                placeholder="smtp.mailtrap.io" />
                     </div>
 
                     <div class="form-group">
                         <label for="mail_port" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                            <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
                             </svg>
                             Mail Port
                         </label>
                         <input id="mail_port" name="mail_port" type="number"
-                               class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-green-500 transition-all duration-200 bg-white shadow-sm"
-                               placeholder="2525" />
+                               class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-purple-500 transition-all duration-200 bg-white shadow-sm"
+                               placeholder="587" />
                     </div>
+                </div>
 
+                <div class="space-y-6">
                     <div class="form-group">
                         <label for="mail_username" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                            <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                             </svg>
                             Mail Username
                         </label>
                         <input id="mail_username" name="mail_username" type="text"
-                               class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-green-500 transition-all duration-200 bg-white shadow-sm" />
+                               class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-purple-500 transition-all duration-200 bg-white shadow-sm" />
                     </div>
 
                     <div class="form-group">
                         <label for="mail_password" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                            <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                             </svg>
                             Mail Password
                         </label>
                         <input id="mail_password" name="mail_password" type="password"
-                               class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-green-500 transition-all duration-200 bg-white shadow-sm" />
+                               class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-purple-500 transition-all duration-200 bg-white shadow-sm" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mail_encryption" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                            <svg class="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                            </svg>
+                            Mail Encryption
+                        </label>
+                        <select id="mail_encryption" name="mail_encryption"
+                                class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-purple-500 transition-all duration-200 bg-white shadow-sm">
+                            <option value="tls">TLS</option>
+                            <option value="ssl">SSL</option>
+                            <option value="">None</option>
+                        </select>
                     </div>
                 </div>
             </div>
@@ -801,7 +951,7 @@ class PageController extends Controller
                 <p class="text-gray-600">Create your administrator account</p>
             </div>
 
-            <div id="install-form" class="space-y-6">
+            <div class="space-y-6">
                 <div class="form-group">
                     <label for="name" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
                         <svg class="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -849,170 +999,7 @@ class PageController extends Controller
                            class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-purple-500 transition-all duration-200 bg-white shadow-sm"
                            placeholder="Confirm your password" />
                 </div>
-
-                <div class="pt-4">
-                    <button type="button" onclick="startInstallation()"
-                            class="w-full brand-primary text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                        <span class="flex items-center justify-center">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                            </svg>
-                            Complete Installation
-                        </span>
-                    </button>
-                </div>
             </div>
-
-            <div id="install-progress" class="hidden space-y-6">
-                <div class="text-center">
-                    <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full mb-4 shadow-lg">
-                        <svg class="w-8 h-8 text-white animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-2xl font-bold text-gray-900 mb-2">Installing Buni CMS</h3>
-                    <p class="text-gray-600">Please wait while we set up your CMS...</p>
-                </div>
-
-                <div class="space-y-4">
-                    <div class="flex justify-between text-sm font-medium text-gray-700">
-                        <span>Installation Progress</span>
-                        <span id="progress-percent">0%</span>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                        <div id="progress-bar" class="bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
-                    </div>
-                </div>
-
-                <div class="bg-gray-50 rounded-xl p-4 space-y-3">
-                    <h4 class="font-semibold text-gray-800 flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        Installation Steps
-                    </h4>
-                    <div id="install-steps" class="space-y-2 text-sm">
-                        <div class="flex items-center text-gray-500">
-                            <div class="w-2 h-2 bg-gray-300 rounded-full mr-3"></div>
-                            <span>Updating configuration files...</span>
-                        </div>
-                        <div class="flex items-center text-gray-500">
-                            <div class="w-2 h-2 bg-gray-300 rounded-full mr-3"></div>
-                            <span>Creating database tables...</span>
-                        </div>
-                        <div class="flex items-center text-gray-500">
-                            <div class="w-2 h-2 bg-gray-300 rounded-full mr-3"></div>
-                            <span>Setting up user roles and permissions...</span>
-                        </div>
-                        <div class="flex items-center text-gray-500">
-                            <div class="w-2 h-2 bg-gray-300 rounded-full mr-3"></div>
-                            <span>Creating admin account...</span>
-                        </div>
-                        <div class="flex items-center text-gray-500">
-                            <div class="w-2 h-2 bg-gray-300 rounded-full mr-3"></div>
-                            <span>Installing default theme...</span>
-                        </div>
-                        <div class="flex items-center text-gray-500">
-                            <div class="w-2 h-2 bg-gray-300 rounded-full mr-3"></div>
-                            <span>Finalizing installation...</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <script>
-                async function startInstallation() {
-                    const form = document.getElementById("install-form");
-                    const progress = document.getElementById("install-progress");
-                    const progressBar = document.getElementById("progress-bar");
-                    const progressPercent = document.getElementById("progress-percent");
-                    const steps = document.querySelectorAll("#install-steps > div");
-
-                    // Get form data
-                    const formData = new FormData();
-                    formData.append("step", "3");
-                    formData.append("name", document.getElementById("name").value);
-                    formData.append("email", document.getElementById("email").value);
-                    formData.append("password", document.getElementById("password").value);
-                    formData.append("password_confirmation", document.getElementById("password_confirmation").value);
-
-                    // Validate form
-                    if (!document.getElementById("name").value || !document.getElementById("email").value ||
-                        !document.getElementById("password").value || !document.getElementById("password_confirmation").value) {
-                        alert("Please fill in all required fields.");
-                        return;
-                    }
-
-                    if (document.getElementById("password").value !== document.getElementById("password_confirmation").value) {
-                        alert("Passwords do not match.");
-                        return;
-                    }
-
-                    // Hide form, show progress
-                    form.classList.add("hidden");
-                    progress.classList.remove("hidden");
-
-                    try {
-                        // Simulate progress steps
-                        const progressSteps = [
-                            { percent: 10, message: "Updating configuration files...", delay: 500 },
-                            { percent: 25, message: "Creating database tables...", delay: 1000 },
-                            { percent: 45, message: "Setting up user roles and permissions...", delay: 800 },
-                            { percent: 65, message: "Creating admin account...", delay: 600 },
-                            { percent: 85, message: "Installing default theme...", delay: 700 },
-                            { percent: 100, message: "Finalizing installation...", delay: 500 }
-                        ];
-
-                        for (let i = 0; i < progressSteps.length; i++) {
-                            const step = progressSteps[i];
-                            const stepElement = steps[i];
-
-                            // Update progress bar
-                            progressBar.style.width = step.percent + "%";
-                            progressPercent.textContent = step.percent + "%";
-
-                            // Update step status
-                            if (stepElement) {
-                                stepElement.querySelector("div").className = "w-2 h-2 bg-blue-500 rounded-full mr-3";
-                                stepElement.querySelector("span").className = "text-blue-600 font-medium";
-                            }
-
-                            await new Promise(resolve => setTimeout(resolve, step.delay));
-                        }
-
-                        // Submit the form
-                        const csrfToken = document.querySelector(\'meta[name="csrf-token"]\').getAttribute(\'content\');
-                        const response = await fetch(window.location.href, {
-                            method: "POST",
-                            body: formData,
-                            headers: {
-                                "X-Requested-With": "XMLHttpRequest",
-                                "X-CSRF-TOKEN": csrfToken
-                            }
-                        });
-
-                        if (response.ok) {
-                            // Redirect to admin login
-                            window.location.href = "/admin/login";
-                        } else {
-                            throw new Error("Installation failed");
-                        }
-
-                    } catch (error) {
-                        console.error("Installation error:", error);
-                        alert("Installation failed. Please check your configuration and try again.");
-                        // Reset UI
-                        form.classList.remove("hidden");
-                        progress.classList.add("hidden");
-                        progressBar.style.width = "0%";
-                        progressPercent.textContent = "0%";
-                        steps.forEach(step => {
-                            step.querySelector("div").className = "w-2 h-2 bg-gray-300 rounded-full mr-3";
-                            step.querySelector("span").className = "text-gray-500";
-                        });
-                    }
-                }
-            </script>
         </div>';
     }
 }
