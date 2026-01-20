@@ -43,17 +43,27 @@ class PageController extends Controller
         $step = $request->input('step', 3);
 
         if ($step == 1) {
-            // Validate DB settings
+            // Validate DB settings based on connection type
             $request->validate([
-                'db_host' => 'required|string',
-                'db_port' => 'required|integer',
+                'db_connection' => 'required|in:mysql,pgsql,sqlite,sqlsrv',
                 'db_database' => 'required|string',
-                'db_username' => 'required|string',
-                'db_password' => 'nullable|string',
             ]);
+
+            $dbConnection = $request->db_connection;
+
+            // Add conditional validation for non-SQLite databases
+            if ($dbConnection !== 'sqlite') {
+                $request->validate([
+                    'db_host' => 'required|string',
+                    'db_port' => 'required|integer',
+                    'db_username' => 'required|string',
+                    'db_password' => 'nullable|string',
+                ]);
+            }
 
             // Store in session
             session([
+                'install_db_connection' => $dbConnection,
                 'install_db_host' => $request->db_host,
                 'install_db_port' => $request->db_port,
                 'install_db_database' => $request->db_database,
@@ -99,6 +109,7 @@ class PageController extends Controller
 
         // Get all data from session
         $dbData = [
+            'DB_CONNECTION' => session('install_db_connection'),
             'DB_HOST' => session('install_db_host'),
             'DB_PORT' => session('install_db_port'),
             'DB_DATABASE' => session('install_db_database'),
@@ -123,9 +134,7 @@ class PageController extends Controller
         $this->updateEnv(array_merge($dbData, $siteData, $mailData));
 
         // For SQLite databases, ensure the database file exists
-        if (strtolower(session('install_db_database', '')) === 'sqlite' ||
-            str_ends_with(strtolower(session('install_db_database', '')), '.sqlite') ||
-            str_ends_with(strtolower(session('install_db_database', '')), '.db')) {
+        if (session('install_db_connection') === 'sqlite') {
             $dbPath = session('install_db_database');
             if (!str_starts_with($dbPath, '/')) {
                 // If it's not an absolute path, make it relative to the database directory
@@ -172,7 +181,7 @@ class PageController extends Controller
 
         // Clear session
         session()->forget([
-            'install_db_host', 'install_db_port', 'install_db_database', 'install_db_username', 'install_db_password',
+            'install_db_connection', 'install_db_host', 'install_db_port', 'install_db_database', 'install_db_username', 'install_db_password',
             'install_site_name', 'install_timezone',
             'install_mail_driver', 'install_mail_host', 'install_mail_port', 'install_mail_username', 'install_mail_password'
         ]);
@@ -244,6 +253,7 @@ class PageController extends Controller
         \Buni\Cms\Models\Setting::set('mail_from_address', '', 'string', 'mail');
         \Buni\Cms\Models\Setting::set('mail_from_name', session('install_site_name', 'My CMS Site'), 'string', 'mail');
 
+        \Buni\Cms\Models\Setting::set('db_connection', session('install_db_connection', 'mysql'), 'string', 'database');
         \Buni\Cms\Models\Setting::set('db_host', session('install_db_host', '127.0.0.1'), 'string', 'database');
         \Buni\Cms\Models\Setting::set('db_port', session('install_db_port', '3306'), 'string', 'database');
         \Buni\Cms\Models\Setting::set('db_database', session('install_db_database', 'laravel'), 'string', 'database');
@@ -498,6 +508,70 @@ class PageController extends Controller
             group.style.transition = \'all 0.6s ease-out\';
             observer.observe(group);
         });
+
+        // Database engine selection handler
+        const dbConnectionSelect = document.getElementById(\'db_connection\');
+        const mysqlFields = document.querySelectorAll(\'.mysql-field\');
+        const pgsqlFields = document.querySelectorAll(\'.pgsql-field\');
+        const sqlsrvFields = document.querySelectorAll(\'.sqlsrv-field\');
+        const dbDatabaseInput = document.getElementById(\'db_database\');
+        const dbHostInput = document.getElementById(\'db_host\');
+        const dbPortInput = document.getElementById(\'db_port\');
+        const dbUsernameInput = document.getElementById(\'db_username\');
+        const dbPasswordInput = document.getElementById(\'db_password\');
+        const databaseHelpText = document.querySelector(\'.database-help-text\');
+
+        function updateDatabaseFields() {
+            const selectedEngine = dbConnectionSelect.value;
+
+            // Hide all engine-specific fields first
+            mysqlFields.forEach(field => field.style.display = \'none\');
+            pgsqlFields.forEach(field => field.style.display = \'none\');
+            sqlsrvFields.forEach(field => field.style.display = \'none\');
+
+            // Remove required attributes
+            dbHostInput.removeAttribute(\'required\');
+            dbPortInput.removeAttribute(\'required\');
+            dbUsernameInput.removeAttribute(\'required\');
+            dbPasswordInput.removeAttribute(\'required\');
+
+            if (selectedEngine === \'sqlite\') {
+                // SQLite only needs database name (file path)
+                dbDatabaseInput.placeholder = \'database/database.sqlite\';
+                databaseHelpText.textContent = \'For SQLite: file path like \\\'database.sqlite\\\' or absolute path. The file will be created automatically if it doesn\\\'t exist.\';
+            } else {
+                // Show fields for other databases
+                if (selectedEngine === \'mysql\') {
+                    mysqlFields.forEach(field => field.style.display = \'block\');
+                    dbHostInput.value = dbHostInput.value || \'127.0.0.1\';
+                    dbPortInput.value = dbPortInput.value || \'3306\';
+                    dbDatabaseInput.placeholder = \'laravel\';
+                } else if (selectedEngine === \'pgsql\') {
+                    pgsqlFields.forEach(field => field.style.display = \'block\');
+                    dbHostInput.value = dbHostInput.value || \'127.0.0.1\';
+                    dbPortInput.value = dbPortInput.value || \'5432\';
+                    dbDatabaseInput.placeholder = \'laravel\';
+                } else if (selectedEngine === \'sqlsrv\') {
+                    sqlsrvFields.forEach(field => field.style.display = \'block\');
+                    dbHostInput.value = dbHostInput.value || \'127.0.0.1\';
+                    dbPortInput.value = dbPortInput.value || \'1433\';
+                    dbDatabaseInput.placeholder = \'laravel\';
+                }
+
+                // Add required attributes for non-SQLite databases
+                dbHostInput.setAttribute(\'required\', \'required\');
+                dbPortInput.setAttribute(\'required\', \'required\');
+                dbUsernameInput.setAttribute(\'required\', \'required\');
+
+                databaseHelpText.textContent = \'Enter the name of your database.\';
+            }
+        }
+
+        // Initialize on page load
+        updateDatabaseFields();
+
+        // Listen for changes
+        dbConnectionSelect.addEventListener(\'change\', updateDatabaseFields);
     </script>
 </body>
 </html>';
@@ -520,25 +594,44 @@ class PageController extends Controller
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="form-group md:col-span-2">
+                    <label for="db_connection" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                        <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Database Engine
+                    </label>
+                    <select id="db_connection" name="db_connection" required
+                            class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-blue-500 transition-all duration-200 bg-white shadow-sm">
+                        <option value="mysql">MySQL</option>
+                        <option value="pgsql">PostgreSQL</option>
+                        <option value="sqlite">SQLite</option>
+                        <option value="sqlsrv">SQL Server</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">
+                        Select the database engine you want to use for your CMS.
+                    </p>
+                </div>
+
+                <div class="form-group mysql-field pgsql-field sqlsrv-field md:col-span-2">
                     <label for="db_host" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
                         <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14"></path>
                         </svg>
                         Database Host
                     </label>
-                    <input id="db_host" name="db_host" type="text" required
+                    <input id="db_host" name="db_host" type="text"
                            class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-blue-500 transition-all duration-200 bg-white shadow-sm"
                            placeholder="127.0.0.1" />
                 </div>
 
-                <div class="form-group md:col-span-2">
+                <div class="form-group mysql-field pgsql-field sqlsrv-field md:col-span-2">
                     <label for="db_port" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
                         <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
                         </svg>
                         Database Port
                     </label>
-                    <input id="db_port" name="db_port" type="number" required
+                    <input id="db_port" name="db_port" type="number"
                            class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-blue-500 transition-all duration-200 bg-white shadow-sm"
                            placeholder="3306" />
                 </div>
@@ -552,25 +645,25 @@ class PageController extends Controller
                     </label>
                     <input id="db_database" name="db_database" type="text" required
                            class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-blue-500 transition-all duration-200 bg-white shadow-sm"
-                           placeholder="laravel (MySQL) or database/database.sqlite (SQLite)" />
-                    <p class="mt-1 text-xs text-gray-500">
-                        For MySQL/PostgreSQL: database name. For SQLite: file path like \'database.sqlite\' or absolute path.
+                           placeholder="laravel (MySQL/PostgreSQL/SQL Server) or database/database.sqlite (SQLite)" />
+                    <p class="mt-1 text-xs text-gray-500 database-help-text">
+                        For MySQL/PostgreSQL/SQL Server: database name. For SQLite: file path like \'database.sqlite\' or absolute path.
                     </p>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group mysql-field pgsql-field sqlsrv-field">
                     <label for="db_username" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
                         <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                         </svg>
                         Database Username
                     </label>
-                    <input id="db_username" name="db_username" type="text" required
+                    <input id="db_username" name="db_username" type="text"
                            class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-blue-500 transition-all duration-200 bg-white shadow-sm"
                            placeholder="root" />
                 </div>
 
-                <div class="form-group">
+                <div class="form-group mysql-field pgsql-field sqlsrv-field">
                     <label for="db_password" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
                         <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
