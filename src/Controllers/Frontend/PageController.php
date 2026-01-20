@@ -13,7 +13,7 @@ class PageController extends Controller
     {
         // Check if CMS is installed (has users)
         if (!Schema::hasTable('users') || \App\Models\User::count() == 0) {
-            return Inertia::render('Install');
+            return view('cms.install');
         }
 
         $slug = $slug ?: 'home'; // Default to home page
