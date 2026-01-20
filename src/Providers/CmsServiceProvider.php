@@ -5,6 +5,8 @@ namespace Buni\Cms\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Buni\Cms\Services\PluginManager;
 use Buni\Cms\Services\ThemeManager;
 use Buni\Cms\Services\HookManager;
@@ -30,6 +32,36 @@ class CmsServiceProvider extends ServiceProvider
 
         // Auto-run migrations if tables don't exist and database is accessible
         try {
+            // Skip database checks during installation or if database is not properly configured
+            $dbConnection = config('database.default');
+            $dbConfig = config('database.connections.' . $dbConnection);
+
+            // For SQLite, ensure the database path is valid and file exists
+            if ($dbConnection === 'sqlite') {
+                $dbPath = $dbConfig['database'] ?? '';
+                if (empty($dbPath)) {
+                    // Skip migration for missing database config
+                    return;
+                }
+
+                // Convert relative paths to absolute
+                if (!str_starts_with($dbPath, '/')) {
+                    $dbPath = database_path($dbPath);
+                }
+
+                // Create database directory and file if they don't exist
+                $dbDir = dirname($dbPath);
+                if (!File::exists($dbDir)) {
+                    File::makeDirectory($dbDir, 0755, true);
+                }
+                if (!File::exists($dbPath)) {
+                    File::put($dbPath, '');
+                }
+            }
+
+            // First check if we can connect to the database
+            DB::connection()->getPdo();
+
             if (!Schema::hasTable('pages')) {
                 Artisan::call('migrate', ['--force' => true]);
             }

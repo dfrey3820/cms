@@ -51,6 +51,15 @@ class PageController extends Controller
 
             $dbConnection = $request->db_connection;
 
+            // Special validation for SQLite
+            if ($dbConnection === 'sqlite') {
+                $dbDatabase = $request->db_database;
+                if (!str_contains($dbDatabase, '.sqlite') && !str_starts_with($dbDatabase, '/')) {
+                    // If it's not a .sqlite file and not an absolute path, append .sqlite
+                    $request->merge(['db_database' => $dbDatabase . '.sqlite']);
+                }
+            }
+
             // Add conditional validation for non-SQLite databases
             if ($dbConnection !== 'sqlite') {
                 $request->validate([
@@ -647,6 +656,11 @@ class PageController extends Controller
                 // SQLite only needs database name (file path)
                 dbDatabaseInput.placeholder = \'database/database.sqlite\';
                 databaseHelpText.textContent = \'For SQLite: file path like \\\'database.sqlite\\\' or absolute path. The file will be created automatically if it doesn\\\'t exist.\';
+
+                // Auto-append .sqlite if not present and not an absolute path
+                if (dbDatabaseInput.value && !dbDatabaseInput.value.includes(\'.sqlite\') && !dbDatabaseInput.value.startsWith(\'/\')) {
+                    dbDatabaseInput.value += \'.sqlite\';
+                }
             } else {
                 // Show fields for other databases
                 if (selectedEngine === \'mysql\') {
