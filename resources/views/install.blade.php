@@ -18,7 +18,7 @@
                 </p>
             </div>
             <form class="mt-8 space-y-6" action="/install" method="POST">
-                @csrf
+                <input type="hidden" name="_token" value="<?php echo csrf_token(); ?>" />
                 <div class="rounded-md shadow-sm -space-y-px">
                     <div>
                         <label for="name" class="sr-only">Name</label>
@@ -29,11 +29,11 @@
                             required
                             class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                             placeholder="Admin Name"
-                            value="{{ old('name') }}"
+                            value="<?php echo old('name'); ?>"
                         />
-                        @error('name')
-                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                        @enderror
+                        <?php if ($errors->has('name')): ?>
+                            <p class="text-red-500 text-xs mt-1"><?php echo $errors->first('name'); ?></p>
+                        <?php endif; ?>
                     </div>
                     <div>
                         <label for="email" class="sr-only">Email</label>
@@ -44,11 +44,11 @@
                             required
                             class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                             placeholder="Email address"
-                            value="{{ old('email') }}"
+                            value="<?php echo old('email'); ?>"
                         />
-                        @error('email')
-                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                        @enderror
+                        <?php if ($errors->has('email')): ?>
+                            <p class="text-red-500 text-xs mt-1"><?php echo $errors->first('email'); ?></p>
+                        <?php endif; ?>
                     </div>
                     <div>
                         <label for="password" class="sr-only">Password</label>
@@ -60,9 +60,9 @@
                             class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                             placeholder="Password"
                         />
-                        @error('password')
-                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                        @enderror
+                        <?php if ($errors->has('password')): ?>
+                            <p class="text-red-500 text-xs mt-1"><?php echo $errors->first('password'); ?></p>
+                        <?php endif; ?>
                     </div>
                     <div>
                         <label for="password_confirmation" class="sr-only">Confirm Password</label>
@@ -74,9 +74,9 @@
                             class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                             placeholder="Confirm Password"
                         />
-                        @error('password_confirmation')
-                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                        @enderror
+                        <?php if ($errors->has('password_confirmation')): ?>
+                            <p class="text-red-500 text-xs mt-1"><?php echo $errors->first('password_confirmation'); ?></p>
+                        <?php endif; ?>
                     </div>
                 </div>
 
