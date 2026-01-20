@@ -1,0 +1,40 @@
+/* Default theme styles */
+:root {
+    --brand-primary: #009cde;
+    --brand-secondary: #12285f;
+    --brand-primary-hover: #007bb8;
+    --brand-secondary-hover: #0e1e4a;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    background-color: var(--brand-secondary);
+    color: white;
+    padding: 1rem;
+}
+
+button.primary {
+    background-color: var(--brand-primary);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+}
+
+button.primary:hover {
+    background-color: var(--brand-primary-hover);
+}
+
+a {
+    color: var(--brand-primary);
+}
+
+a:hover {
+    color: var(--brand-primary-hover);
+}

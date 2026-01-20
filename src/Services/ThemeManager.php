@@ -50,7 +50,12 @@ class ThemeManager
 
     protected function getThemeClass($path)
     {
-        $composer = json_decode(File::get($path . '/composer.json'), true);
-        return $composer['autoload']['psr-4'][array_key_first($composer['autoload']['psr-4'])] . 'Theme';
+        $themeFile = $path . '/src/Theme.php';
+        if (File::exists($themeFile)) {
+            require_once $themeFile;
+            $dirName = basename($path);
+            return 'Buni\\Themes\\' . ucfirst($dirName) . '\\Theme';
+        }
+        return null;
     }
 }
