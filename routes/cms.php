@@ -13,7 +13,7 @@ Route::prefix(config('cms.admin_prefix'))->middleware(['web'])->group(function (
     Route::post('/login', [FrontendPageController::class, 'login'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])->name('cms.admin.login.post');
 });
 
-Route::prefix(config('cms.admin_prefix'))->middleware(['web', 'auth'])->group(function () {
+Route::prefix(config('cms.admin_prefix'))->middleware(['web', 'auth', 'cms.maintenance'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('cms.admin.dashboard');
     Route::resource('pages', PageController::class)->names('cms.admin.pages');
     Route::delete('pages/bulk-delete', [PageController::class, 'bulkDelete'])->name('cms.admin.pages.bulk-delete');

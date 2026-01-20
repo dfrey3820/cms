@@ -29,6 +29,7 @@ class CmsServiceProvider extends ServiceProvider
         // Register middleware
         $router = $this->app['router'];
         $router->aliasMiddleware('cms.installed', \Buni\Cms\Middleware\EnsureCmsIsInstalled::class);
+        $router->aliasMiddleware('cms.maintenance', \Buni\Cms\Middleware\CheckForMaintenanceMode::class);
 
         // Check if .env file exists and create minimal one if needed
         $envFile = base_path('.env');
