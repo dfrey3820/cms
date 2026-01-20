@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Buni\Cms\Controllers\Admin\DashboardController;
 use Buni\Cms\Controllers\Admin\PageController;
+use Buni\Cms\Controllers\Frontend\PageController;
 
 Route::prefix(config('cms.admin_prefix'))->middleware(['web', 'auth'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('cms.admin.dashboard');
@@ -11,7 +12,5 @@ Route::prefix(config('cms.admin_prefix'))->middleware(['web', 'auth'])->group(fu
 
 Route::middleware(['web'])->group(function () {
     // Frontend routes
-    Route::get('/{slug}', function ($slug) {
-        // Resolve page by slug
-    })->where('slug', '.*');
+    Route::get('/{slug?}', [PageController::class, 'show'])->where('slug', '.*')->name('cms.page');
 });
