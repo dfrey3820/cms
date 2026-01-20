@@ -3,6 +3,7 @@
 namespace Buni\Cms\Controllers\Frontend;
 
 use Illuminate\Support\Facades\File;
+use Illuminate\Routing\Controller;
 
 class PageController extends Controller
 {
