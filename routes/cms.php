@@ -26,6 +26,6 @@ Route::middleware(['web'])->group(function () {
     
     // Frontend routes - protected by installation middleware
     Route::middleware(['cms.installed'])->group(function () {
-        Route::get('/{slug?}', [FrontendPageController::class, 'show'])->where('slug', '.*')->name('cms.page');
+        Route::get('/{slug?}', [FrontendPageController::class, 'show'])->where('slug', '[a-zA-Z0-9\-_]+');
     });
 });

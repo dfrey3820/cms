@@ -28,7 +28,8 @@ class PageController extends Controller
             abort(404);
         }
 
-        return Inertia::render('Page', ['page' => $page]);
+        // For now, render a simple HTML page since Inertia might not be set up
+        return response()->view('cms::page', ['page' => $page])->header('Content-Type', 'text/html');
     }
 
     public function install(Request $request)
@@ -179,30 +180,31 @@ class PageController extends Controller
         // Update .env first
         $this->updateEnv(array_merge($dbData, $siteData, $mailData));
 
-        // Reload configuration after .env changes
+        // Clear and reload configuration after .env changes
         \Artisan::call('config:clear');
-        \Artisan::call('config:cache');
+        \Artisan::call('cache:clear');
 
-        // For SQLite databases, ensure the database file exists
-        if (session('install_db_connection') === 'sqlite') {
+        // Force Laravel to reload the configuration
+        app()->loadEnvironmentFrom('.env');
+        config(['database.default' => session('install_db_connection')]);
+
+        // Set up database connection based on type
+        $connection = session('install_db_connection');
+        if ($connection === 'sqlite') {
             $dbPath = session('install_db_database');
             if (!str_starts_with($dbPath, '/')) {
-                // If it's not an absolute path, make it relative to the database directory
                 $dbPath = database_path($dbPath);
             }
             if (!File::exists($dbPath)) {
-                // Create the directory if it doesn't exist
                 $dbDir = dirname($dbPath);
                 if (!File::exists($dbDir)) {
                     File::makeDirectory($dbDir, 0755, true);
                 }
-                // Create an empty SQLite database file
                 File::put($dbPath, '');
             }
-        } elseif (session('install_db_connection') === 'mysql') {
+        } elseif ($connection === 'mysql') {
             // For MySQL, try to create the database if it doesn't exist
             try {
-                // Connect without specifying a database to create it
                 $pdo = new \PDO(
                     'mysql:host=' . session('install_db_host') . ';port=' . session('install_db_port'),
                     session('install_db_username'),
@@ -210,18 +212,55 @@ class PageController extends Controller
                 );
                 $pdo->exec('CREATE DATABASE IF NOT EXISTS `' . session('install_db_database') . '` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
             } catch (\Exception $e) {
-                // If we can't create the database, continue anyway - it might already exist
-                // The migration will fail if the database doesn't exist
+                // Log the error but continue - database might already exist
+                \Log::warning('Failed to create MySQL database: ' . $e->getMessage());
+            }
+        } elseif ($connection === 'pgsql') {
+            // For PostgreSQL, try to create the database if it doesn't exist
+            try {
+                $pdo = new \PDO(
+                    'pgsql:host=' . session('install_db_host') . ';port=' . session('install_db_port'),
+                    session('install_db_username'),
+                    session('install_db_password')
+                );
+                $pdo->exec('CREATE DATABASE "' . session('install_db_database') . '" WITH ENCODING \'UTF8\'');
+            } catch (\Exception $e) {
+                // Log the error but continue - database might already exist
+                \Log::warning('Failed to create PostgreSQL database: ' . $e->getMessage());
+            }
+        } elseif ($connection === 'sqlsrv') {
+            // For SQL Server, try to create the database if it doesn't exist
+            try {
+                $pdo = new \PDO(
+                    'sqlsrv:Server=' . session('install_db_host') . ',' . session('install_db_port'),
+                    session('install_db_username'),
+                    session('install_db_password')
+                );
+                $pdo->exec('IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = N\'' . session('install_db_database') . '\') CREATE DATABASE [' . session('install_db_database') . ']');
+            } catch (\Exception $e) {
+                // Log the error but continue - database might already exist
+                \Log::warning('Failed to create SQL Server database: ' . $e->getMessage());
             }
         }
 
-        // Run migrations (Laravel first, then CMS)
-        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        // Test the database connection with the new configuration
+        try {
+            \DB::connection()->getPdo();
+        } catch (\Exception $e) {
+            throw new \Exception('Failed to connect to database after configuration: ' . $e->getMessage());
+        }
 
-        // Run the CMS seeder
-        \Illuminate\Support\Facades\Artisan::call('db:seed', [
+        // Run migrations with explicit connection
+        \Artisan::call('migrate', [
+            '--force' => true,
+            '--database' => $connection
+        ]);
+
+        // Run the CMS seeder with explicit connection
+        \Artisan::call('db:seed', [
             '--class' => 'Buni\\Cms\\Database\\Seeders\\CmsSeeder',
-            '--force' => true
+            '--force' => true,
+            '--database' => $connection
         ]);
 
         // Create admin user
@@ -247,7 +286,17 @@ class PageController extends Controller
         if (!File::exists($themesPath)) {
             File::makeDirectory($themesPath, 0755, true);
         }
-        File::copyDirectory(__DIR__.'/../../sample-theme', $themesPath . '/default');
+
+        $sourceThemePath = __DIR__.'/../../sample-theme';
+        $destinationThemePath = $themesPath . '/default';
+
+        if (File::exists($sourceThemePath)) {
+            try {
+                File::copyDirectory($sourceThemePath, $destinationThemePath);
+            } catch (\Exception $e) {
+                // Continue installation even if theme copy fails
+            }
+        }
 
         // Clear session
         session()->forget([
