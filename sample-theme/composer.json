@@ -4,7 +4,7 @@
     "type": "library",
     "autoload": {
         "psr-4": {
-            "Buni\\Themes\\SampleTheme\\": "src/"
+            "Buni\\Themes\\Default\\": "src/"
         }
     }
 }

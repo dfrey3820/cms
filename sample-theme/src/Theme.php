@@ -1,6 +1,6 @@
 <?php
 
-namespace Buni\Themes\SampleTheme;
+namespace Buni\Themes\Default;
 
 use Buni\Cms\Contracts\ThemeInterface;
 

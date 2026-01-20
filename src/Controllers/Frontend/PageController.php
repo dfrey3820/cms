@@ -2,15 +2,7 @@
 
 namespace Buni\Cms\Controllers\Frontend;
 
-use Buni\Cms\Models\Page;
-use Buni\Cms\Database\Seeders\CmsSeeder;
-use Inertia\Inertia;
-use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\File;
 
 class PageController extends Controller
 {
@@ -61,6 +53,13 @@ class PageController extends Controller
             'content' => '<p>Welcome to your new CMS powered by Buni.</p>',
             'status' => 'published',
         ]);
+
+        // Install default theme
+        $themesPath = config('cms.themes_path');
+        if (!File::exists($themesPath)) {
+            File::makeDirectory($themesPath, 0755, true);
+        }
+        File::copyDirectory(__DIR__.'/../../sample-theme', $themesPath . '/default');
 
         return redirect('/admin');
     }
