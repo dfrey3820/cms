@@ -19,9 +19,9 @@ class DashboardController extends Controller
 
         $stats = [
             'pages' => Page::count(),
-            'posts' => Post::count(),
+            'posts' => $this->getPostsCount(),
             'published_pages' => Page::where('status', 'published')->count(),
-            'published_posts' => Post::where('status', 'published')->count(),
+            'published_posts' => $this->getPublishedPostsCount(),
             'plugins' => $this->getPluginCount(),
         ];
 
@@ -65,5 +65,23 @@ class DashboardController extends Controller
         }
 
         return $count;
+    }
+
+    private function getPostsCount()
+    {
+        try {
+            return Post::count();
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    private function getPublishedPostsCount()
+    {
+        try {
+            return Post::where('status', 'published')->count();
+        } catch (\Exception $e) {
+            return 0;
+        }
     }
 }
