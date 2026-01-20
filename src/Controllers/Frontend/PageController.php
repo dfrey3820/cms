@@ -698,74 +698,76 @@ EOT;
             observer.observe(group);
         });
 
-        // Database engine selection handler
+        // Database engine selection handler (only if elements exist)
         const dbConnectionSelect = document.getElementById(\'db_connection\');
-        const mysqlFields = document.querySelectorAll(\'.mysql-field\');
-        const pgsqlFields = document.querySelectorAll(\'.pgsql-field\');
-        const sqlsrvFields = document.querySelectorAll(\'.sqlsrv-field\');
-        const dbDatabaseInput = document.getElementById(\'db_database\');
-        const dbHostInput = document.getElementById(\'db_host\');
-        const dbPortInput = document.getElementById(\'db_port\');
-        const dbUsernameInput = document.getElementById(\'db_username\');
-        const dbPasswordInput = document.getElementById(\'db_password\');
-        const databaseHelpText = document.querySelector(\'.database-help-text\');
+        if (dbConnectionSelect) {
+            const mysqlFields = document.querySelectorAll(\'.mysql-field\');
+            const pgsqlFields = document.querySelectorAll(\'.pgsql-field\');
+            const sqlsrvFields = document.querySelectorAll(\'.sqlsrv-field\');
+            const dbDatabaseInput = document.getElementById(\'db_database\');
+            const dbHostInput = document.getElementById(\'db_host\');
+            const dbPortInput = document.getElementById(\'db_port\');
+            const dbUsernameInput = document.getElementById(\'db_username\');
+            const dbPasswordInput = document.getElementById(\'db_password\');
+            const databaseHelpText = document.querySelector(\'.database-help-text\');
 
-        function updateDatabaseFields() {
-            const selectedEngine = dbConnectionSelect.value;
+            function updateDatabaseFields() {
+                const selectedEngine = dbConnectionSelect.value;
 
-            // Hide all engine-specific fields first
-            mysqlFields.forEach(field => field.style.display = \'none\');
-            pgsqlFields.forEach(field => field.style.display = \'none\');
-            sqlsrvFields.forEach(field => field.style.display = \'none\');
+                // Hide all engine-specific fields first
+                mysqlFields.forEach(field => field.style.display = \'none\');
+                pgsqlFields.forEach(field => field.style.display = \'none\');
+                sqlsrvFields.forEach(field => field.style.display = \'none\');
 
-            // Remove required attributes
-            dbHostInput.removeAttribute(\'required\');
-            dbPortInput.removeAttribute(\'required\');
-            dbUsernameInput.removeAttribute(\'required\');
-            dbPasswordInput.removeAttribute(\'required\');
+                // Remove required attributes
+                dbHostInput.removeAttribute(\'required\');
+                dbPortInput.removeAttribute(\'required\');
+                dbUsernameInput.removeAttribute(\'required\');
+                dbPasswordInput.removeAttribute(\'required\');
 
-            if (selectedEngine === \'sqlite\') {
-                // SQLite only needs database name (file path)
-                dbDatabaseInput.placeholder = \'database/database.sqlite\';
-                databaseHelpText.textContent = \'For SQLite: file path like \\\'database.sqlite\\\' or absolute path. The file will be created automatically if it doesn\\\'t exist.\';
+                if (selectedEngine === \'sqlite\') {
+                    // SQLite only needs database name (file path)
+                    dbDatabaseInput.placeholder = \'database/database.sqlite\';
+                    databaseHelpText.textContent = \'For SQLite: file path like \\\'database.sqlite\\\' or absolute path. The file will be created automatically if it doesn\\\'t exist.\';
 
-                // Auto-append .sqlite if not present and not an absolute path
-                if (dbDatabaseInput.value && !dbDatabaseInput.value.includes(\'.sqlite\') && !dbDatabaseInput.value.startsWith(\'/\')) {
-                    dbDatabaseInput.value += \'.sqlite\';
+                    // Auto-append .sqlite if not present and not an absolute path
+                    if (dbDatabaseInput.value && !dbDatabaseInput.value.includes(\'.sqlite\') && !dbDatabaseInput.value.startsWith(\'/\')) {
+                        dbDatabaseInput.value += \'.sqlite\';
+                    }
+                } else {
+                    // Show fields for other databases
+                    if (selectedEngine === \'mysql\') {
+                        mysqlFields.forEach(field => field.style.display = \'block\');
+                        dbHostInput.value = dbHostInput.value || \'127.0.0.1\';
+                        dbPortInput.value = dbPortInput.value || \'3306\';
+                        dbDatabaseInput.placeholder = \'laravel\';
+                    } else if (selectedEngine === \'pgsql\') {
+                        pgsqlFields.forEach(field => field.style.display = \'block\');
+                        dbHostInput.value = dbHostInput.value || \'127.0.0.1\';
+                        dbPortInput.value = dbPortInput.value || \'5432\';
+                        dbDatabaseInput.placeholder = \'laravel\';
+                    } else if (selectedEngine === \'sqlsrv\') {
+                        sqlsrvFields.forEach(field => field.style.display = \'block\');
+                        dbHostInput.value = dbHostInput.value || \'127.0.0.1\';
+                        dbPortInput.value = dbPortInput.value || \'1433\';
+                        dbDatabaseInput.placeholder = \'laravel\';
+                    }
+
+                    // Add required attributes for non-SQLite databases
+                    dbHostInput.setAttribute(\'required\', \'required\');
+                    dbPortInput.setAttribute(\'required\', \'required\');
+                    dbUsernameInput.setAttribute(\'required\', \'required\');
+
+                    databaseHelpText.textContent = \'Enter the name of your database.\';
                 }
-            } else {
-                // Show fields for other databases
-                if (selectedEngine === \'mysql\') {
-                    mysqlFields.forEach(field => field.style.display = \'block\');
-                    dbHostInput.value = dbHostInput.value || \'127.0.0.1\';
-                    dbPortInput.value = dbPortInput.value || \'3306\';
-                    dbDatabaseInput.placeholder = \'laravel\';
-                } else if (selectedEngine === \'pgsql\') {
-                    pgsqlFields.forEach(field => field.style.display = \'block\');
-                    dbHostInput.value = dbHostInput.value || \'127.0.0.1\';
-                    dbPortInput.value = dbPortInput.value || \'5432\';
-                    dbDatabaseInput.placeholder = \'laravel\';
-                } else if (selectedEngine === \'sqlsrv\') {
-                    sqlsrvFields.forEach(field => field.style.display = \'block\');
-                    dbHostInput.value = dbHostInput.value || \'127.0.0.1\';
-                    dbPortInput.value = dbPortInput.value || \'1433\';
-                    dbDatabaseInput.placeholder = \'laravel\';
-                }
-
-                // Add required attributes for non-SQLite databases
-                dbHostInput.setAttribute(\'required\', \'required\');
-                dbPortInput.setAttribute(\'required\', \'required\');
-                dbUsernameInput.setAttribute(\'required\', \'required\');
-
-                databaseHelpText.textContent = \'Enter the name of your database.\';
             }
+
+            // Initialize on page load
+            updateDatabaseFields();
+
+            // Listen for changes
+            dbConnectionSelect.addEventListener(\'change\', updateDatabaseFields);
         }
-
-        // Initialize on page load
-        updateDatabaseFields();
-
-        // Listen for changes
-        dbConnectionSelect.addEventListener(\'change\', updateDatabaseFields);
     </script>
 </body>
 </html>';
