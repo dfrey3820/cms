@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Buni\Cms\Controllers\Admin\DashboardController;
 use Buni\Cms\Controllers\Admin\PageController;
-use Buni\Cms\Controllers\Admin\SettingsController;
+use Buni\Cms\Controllers\Admin\PostController;
 use Buni\Cms\Controllers\Frontend\PageController as FrontendPageController;
 
 Route::prefix(config('cms.admin_prefix'))->middleware(['web'])->group(function () {
@@ -14,8 +14,12 @@ Route::prefix(config('cms.admin_prefix'))->middleware(['web'])->group(function (
 Route::prefix(config('cms.admin_prefix'))->middleware(['web', 'auth'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('cms.admin.dashboard');
     Route::resource('pages', PageController::class)->names('cms.admin.pages');
+    Route::delete('pages/bulk-delete', [PageController::class, 'bulkDelete'])->name('cms.admin.pages.bulk-delete');
+    Route::resource('posts', PostController::class)->names('cms.admin.posts');
+    Route::delete('posts/bulk-delete', [PostController::class, 'bulkDelete'])->name('cms.admin.posts.bulk-delete');
     Route::get('/settings', [SettingsController::class, 'index'])->name('cms.admin.settings');
     Route::post('/settings', [SettingsController::class, 'update'])->name('cms.admin.settings.update');
+    Route::post('/settings/editor', [SettingsController::class, 'updateEditor'])->name('cms.admin.settings.editor.update');
     Route::post('/logout', [FrontendPageController::class, 'logout'])->name('cms.admin.logout');
 });
 

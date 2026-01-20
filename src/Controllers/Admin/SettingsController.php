@@ -9,13 +9,22 @@ use Inertia\Inertia;
 
 class SettingsController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $activeTab = $request->get('tab', 'general');
+
         $settings = Setting::all()->groupBy('group');
 
-        return Inertia::render('Admin/Settings/Index', [
+        $data = [
             'settings' => $settings,
-        ]);
+            'activeTab' => $activeTab,
+        ];
+
+        if ($activeTab === 'editors') {
+            $data['editors'] = $this->getAvailableEditors();
+        }
+
+        return Inertia::render('Admin/Settings/Index', $data);
     }
 
     public function update(Request $request)
@@ -84,5 +93,74 @@ class SettingsController extends Controller
         }
 
         file_put_contents($envFile, $content);
+    }
+
+    public function updateEditor(Request $request)
+    {
+        $request->validate([
+            'editor_id' => 'required|string',
+            'active' => 'boolean',
+            'assignment' => 'in:pages,posts,both',
+        ]);
+
+        // In a real implementation, this would update a database table
+        // For now, we'll use settings
+        $key = "editor_{$request->editor_id}_active";
+        Setting::set($key, $request->active ? '1' : '0', 'boolean', 'editors');
+
+        $key = "editor_{$request->editor_id}_assignment";
+        Setting::set($key, $request->assignment, 'string', 'editors');
+
+        return response()->json(['message' => 'Editor updated successfully']);
+    }
+
+    private function getAvailableEditors()
+    {
+        // In a real implementation, this would scan plugins or config
+        // For now, return some default editors
+        $editors = [
+            [
+                'id' => 'default',
+                'name' => 'Default Editor',
+                'description' => 'Basic HTML editor',
+                'active' => true,
+                'assignment' => 'both', // pages, posts, both
+                'type' => 'basic',
+            ],
+            [
+                'id' => 'tinymce',
+                'name' => 'TinyMCE',
+                'description' => 'Rich text editor with advanced features',
+                'active' => false,
+                'assignment' => 'pages',
+                'type' => 'richtext',
+            ],
+            [
+                'id' => 'ckeditor',
+                'name' => 'CKEditor',
+                'description' => 'Powerful rich text editor',
+                'active' => false,
+                'assignment' => 'posts',
+                'type' => 'richtext',
+            ],
+        ];
+
+        // Load settings
+        foreach ($editors as &$editor) {
+            $activeKey = "editor_{$editor['id']}_active";
+            $assignmentKey = "editor_{$editor['id']}_assignment";
+
+            $activeSetting = Setting::where('key', $activeKey)->first();
+            if ($activeSetting) {
+                $editor['active'] = $activeSetting->value === '1';
+            }
+
+            $assignmentSetting = Setting::where('key', $assignmentKey)->first();
+            if ($assignmentSetting) {
+                $editor['assignment'] = $assignmentSetting->value;
+            }
+        }
+
+        return $editors;
     }
 }

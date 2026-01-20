@@ -9,11 +9,16 @@ class Page extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['title', 'slug', 'content', 'blocks', 'status', 'seo_title', 'seo_description'];
+    protected $fillable = ['title', 'slug', 'content', 'blocks', 'status', 'seo_title', 'seo_description', 'author_id'];
 
     protected $casts = [
         'blocks' => 'array',
     ];
+
+    public function author()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'author_id');
+    }
 
     public function revisions()
     {
