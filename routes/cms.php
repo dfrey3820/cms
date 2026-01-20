@@ -13,4 +13,5 @@ Route::prefix(config('cms.admin_prefix'))->middleware(['web', 'auth'])->group(fu
 Route::middleware(['web'])->group(function () {
     // Frontend routes
     Route::get('/{slug?}', [FrontendPageController::class, 'show'])->where('slug', '.*')->name('cms.page');
+    Route::post('/install', [FrontendPageController::class, 'install'])->name('cms.install');
 });
