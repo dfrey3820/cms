@@ -6,14 +6,30 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Buni\Cms\Models\Page;
+use \App\Models\User;
 use Inertia\Inertia;
 
 class PageController extends Controller
 {
     public function showInstall()
     {
+        // Check if CMS is already installed
+        try {
+            $hasTable = Schema::hasTable('users');
+            $userCount = DB::table('users')->count();
+            $isInstalled = $hasTable && $userCount > 0;
+            Log::info("Install check: hasTable=$hasTable, userCount=$userCount, isInstalled=$isInstalled");
+        } catch (\Exception $e) {
+            Log::error("Install check error: " . $e->getMessage());
+            $isInstalled = false;
+        }
+
+        if ($isInstalled) {
+            return redirect('/admin');
+        }
+
         $step = request('step', 1);
         return $this->renderInstallStep($step);
     }
@@ -35,6 +51,10 @@ class PageController extends Controller
     public function install(Request $request)
     {
         $step = $request->input('step', 3);
+
+        \Log::info('Install method called with step: ' . $step);
+        \Log::info('Request data:', $request->all());
+        \Log::info('All input:', $request->input());
 
         if ($step == 1) {
             // Validate DB settings based on connection type
@@ -121,6 +141,7 @@ class PageController extends Controller
         }
 
         if ($step == 4) {
+            \Log::info('Processing step 4');
             // Validate mail settings
             $request->validate([
                 'mail_driver' => 'required|string',
@@ -130,6 +151,8 @@ class PageController extends Controller
                 'mail_password' => 'nullable|string',
                 'mail_encryption' => 'nullable|string|in:tls,ssl,',
             ]);
+
+            \Log::info('Step 4 validation passed');
 
             // Store in session
             session([
@@ -141,14 +164,36 @@ class PageController extends Controller
                 'install_mail_encryption' => $request->mail_encryption,
             ]);
 
+            \Log::info('Redirecting to step 5');
             return redirect('/install?step=5');
         }
 
         // Step 5: Final installation
-        $request->validate([
+        // Check if users table exists for validation
+        $userValidationRules = [
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
+            'email' => 'required|string|email|max:255',
             'password' => 'required|string|min:8|confirmed',
+        ];
+
+        // Only add unique validation if users table exists
+        try {
+            if (\Schema::hasTable('users')) {
+                $userValidationRules['email'] .= '|unique:users';
+            }
+        } catch (\Exception $e) {
+            // Table doesn't exist yet, skip unique validation
+        }
+
+        $request->validate($userValidationRules);
+
+        \Log::info('Starting final installation step');
+        \Log::info('Session data:', [
+            'db_connection' => session('install_db_connection'),
+            'db_host' => session('install_db_host'),
+            'db_database' => session('install_db_database'),
+            'site_name' => session('install_site_name'),
+            'admin_email' => session('install_admin_email'),
         ]);
 
         // Get all data from session
@@ -180,13 +225,46 @@ class PageController extends Controller
         // Update .env first
         $this->updateEnv(array_merge($dbData, $siteData, $mailData));
 
-        // Clear and reload configuration after .env changes
+        // Clear configuration cache
         \Artisan::call('config:clear');
+
+        // Force Laravel to reload the environment
+        app()->loadEnvironmentFrom('.env');
+
+        // Manually reload database configuration
+        $dbConfig = [
+            'default' => session('install_db_connection'),
+            'connections' => config('database.connections', []),
+        ];
+
+        if (session('install_db_connection') !== 'sqlite') {
+            $dbConfig['connections'][session('install_db_connection')] = [
+                'driver' => session('install_db_connection'),
+                'host' => session('install_db_host'),
+                'port' => session('install_db_port'),
+                'database' => session('install_db_database'),
+                'username' => session('install_db_username'),
+                'password' => session('install_db_password'),
+                'charset' => 'utf8mb4',
+                'collation' => 'utf8mb4_unicode_ci',
+                'prefix' => '',
+                'strict' => true,
+                'engine' => null,
+            ];
+        }
+
+        config(['database' => $dbConfig]);
+
+        // Purge existing connections to force reconnection
+        \DB::purge();
+
+        // Now clear application cache (after database is configured)
         \Artisan::call('cache:clear');
 
-        // Force Laravel to reload the configuration
-        app()->loadEnvironmentFrom('.env');
-        config(['database.default' => session('install_db_connection')]);
+        \Log::info('Config updated, current database config:', [
+            'default' => config('database.default'),
+            'connections' => array_keys(config('database.connections')),
+        ]);
 
         // Set up database connection based on type
         $connection = session('install_db_connection');
@@ -363,7 +441,10 @@ class PageController extends Controller
     {
         $envFile = base_path('.env');
 
+        \Log::info('Updating .env file with data:', $data);
+
         if (!File::exists($envFile)) {
+            \Log::info('Creating new .env file');
             // Create a basic .env file with default Laravel settings
             $defaultEnv = <<<'EOT'
 APP_NAME=Laravel
@@ -430,18 +511,22 @@ EOT;
         }
 
         $envContent = File::get($envFile);
+        \Log::info('Original .env content length: ' . strlen($envContent));
 
         foreach ($data as $key => $value) {
             $pattern = "/^{$key}=.*$/m";
             $replacement = "{$key}={$value}";
             if (preg_match($pattern, $envContent)) {
+                \Log::info("Updating existing {$key} from " . (preg_match($pattern, $envContent, $matches) ? $matches[0] : 'not found') . " to {$replacement}");
                 $envContent = preg_replace($pattern, $replacement, $envContent);
             } else {
+                \Log::info("Adding new {$key}={$value}");
                 $envContent .= "\n{$key}={$value}";
             }
         }
 
-        File::put($envFile, $envContent);
+        $result = File::put($envFile, $envContent);
+        \Log::info('.env file updated, bytes written: ' . $result);
     }
 
     private function renderInstallStep($step)
