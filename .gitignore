@@ -1,0 +1,42 @@
+# Composer
+/vendor/
+/composer.lock
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+
+# Node modules (if any)
+node_modules/
+
+# Build artifacts
+/build/
+/dist/
+
+# PHPUnit
+/phpunit.xml
+.phpunit.result.cache
+
+# Laravel specific (if applicable)
+.env
+.env.local
+.env.*.local
+storage/logs/*
+bootstrap/cache/*
