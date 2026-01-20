@@ -119,7 +119,7 @@ class CmsServiceProvider extends ServiceProvider
 
         $this->publishes([
             __DIR__.'/../../config/cms.php' => config_path('cms.php'),
-            __DIR__.'/../../resources/js' => resource_path('js/vendor/cms'),
+            __DIR__.'/../Resources/js' => resource_path('js/vendor/cms'),
         ], 'cms-config');
     }
 }

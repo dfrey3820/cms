@@ -23,11 +23,11 @@ Route::prefix(config('cms.admin_prefix'))->middleware(['web', 'auth', 'cms.maint
     Route::get('/settings', [SettingsController::class, 'index'])->name('cms.admin.settings');
     Route::post('/settings', [SettingsController::class, 'update'])->name('cms.admin.settings.update');
     Route::post('/settings/editor', [SettingsController::class, 'updateEditor'])->name('cms.admin.settings.editor.update');
-    // Route::get('/updates', [\Buni\Cms\Controllers\Admin\UpdatesController::class, 'index'])->name('cms.admin.updates');
-    // Route::post('/updates/check', [\Buni\Cms\Controllers\Admin\UpdatesController::class, 'checkForUpdates'])->name('cms.admin.updates.check');
-    // Route::post('/updates/install', [\Buni\Cms\Controllers\Admin\UpdatesController::class, 'installUpdate'])->name('cms.admin.updates.install');
-    // Route::post('/updates/migrations', [\Buni\Cms\Controllers\Admin\UpdatesController::class, 'runMigrations'])->name('cms.admin.updates.migrations');
-    // Route::post('/updates/maintenance', [\Buni\Cms\Controllers\Admin\UpdatesController::class, 'toggleMaintenance'])->name('cms.admin.updates.maintenance');
+    Route::get('/updates', [\Buni\Cms\Controllers\Admin\UpdatesController::class, 'index'])->name('cms.admin.updates');
+    Route::post('/updates/check', [\Buni\Cms\Controllers\Admin\UpdatesController::class, 'checkForUpdates'])->name('cms.admin.updates.check');
+    Route::post('/updates/install', [\Buni\Cms\Controllers\Admin\UpdatesController::class, 'installUpdate'])->name('cms.admin.updates.install');
+    Route::post('/updates/migrations', [\Buni\Cms\Controllers\Admin\UpdatesController::class, 'runMigrations'])->name('cms.admin.updates.migrations');
+    Route::post('/updates/maintenance', [\Buni\Cms\Controllers\Admin\UpdatesController::class, 'toggleMaintenance'])->name('cms.admin.updates.maintenance');
     Route::resource('plugins', PluginsController::class)->names('cms.admin.plugins');
     Route::post('plugins/{plugin}/activate', [PluginsController::class, 'activate'])->name('cms.admin.plugins.activate');
     Route::post('plugins/{plugin}/deactivate', [PluginsController::class, 'deactivate'])->name('cms.admin.plugins.deactivate');
