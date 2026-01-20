@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Buni\Cms\Models\Page;
-use Buni\Cms\Database\Seeders\CmsSeeder;
 use Inertia\Inertia;
 
 class PageController extends Controller
@@ -116,9 +115,8 @@ class PageController extends Controller
         // Update .env first
         $this->updateEnv(array_merge($dbData, $siteData, $mailData));
 
-        // Run seeder to create roles and settings
-        $seeder = new CmsSeeder();
-        $seeder->run();
+        // Run seeder logic inline to create roles and settings
+        $this->runSeederLogic();
 
         // Create admin user
         $user = \App\Models\User::create([
@@ -157,11 +155,11 @@ class PageController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Installation completed successfully',
-                'redirect' => '/admin'
+                'redirect' => '/admin/login'
             ]);
         }
 
-        return redirect('/admin');
+        return redirect('/admin/login');
     }
 
     private function updateEnv($data)
@@ -184,6 +182,48 @@ class PageController extends Controller
         File::put($envFile, $envContent);
     }
 
+    private function runSeederLogic()
+    {
+        // Create permissions
+        \Spatie\Permission\Models\Permission::create(['name' => 'manage pages']);
+        \Spatie\Permission\Models\Permission::create(['name' => 'manage users']);
+        \Spatie\Permission\Models\Permission::create(['name' => 'manage plugins']);
+        \Spatie\Permission\Models\Permission::create(['name' => 'manage themes']);
+        \Spatie\Permission\Models\Permission::create(['name' => 'manage settings']);
+
+        // Create roles
+        $admin = \Spatie\Permission\Models\Role::create(['name' => 'admin']);
+        $admin->givePermissionTo(['manage pages', 'manage users', 'manage plugins', 'manage themes', 'manage settings']);
+
+        $editor = \Spatie\Permission\Models\Role::create(['name' => 'editor']);
+        $editor->givePermissionTo(['manage pages']);
+
+        // Create super-admin role
+        $superAdmin = \Spatie\Permission\Models\Role::create(['name' => 'super-admin']);
+        $superAdmin->givePermissionTo(['manage pages', 'manage users', 'manage plugins', 'manage themes', 'manage settings']);
+
+        // Seed default settings
+        \Buni\Cms\Models\Setting::set('site_name', session('install_site_name', 'My CMS Site'), 'string', 'site');
+        \Buni\Cms\Models\Setting::set('site_description', '', 'string', 'site');
+        \Buni\Cms\Models\Setting::set('timezone', session('install_timezone', 'UTC'), 'string', 'site');
+        \Buni\Cms\Models\Setting::set('language', 'en', 'string', 'site');
+
+        \Buni\Cms\Models\Setting::set('mail_driver', session('install_mail_driver', 'smtp'), 'string', 'mail');
+        \Buni\Cms\Models\Setting::set('mail_host', session('install_mail_host', ''), 'string', 'mail');
+        \Buni\Cms\Models\Setting::set('mail_port', session('install_mail_port', '587'), 'string', 'mail');
+        \Buni\Cms\Models\Setting::set('mail_username', session('install_mail_username', ''), 'string', 'mail');
+        \Buni\Cms\Models\Setting::set('mail_password', session('install_mail_password', ''), 'string', 'mail');
+        \Buni\Cms\Models\Setting::set('mail_encryption', 'tls', 'string', 'mail');
+        \Buni\Cms\Models\Setting::set('mail_from_address', '', 'string', 'mail');
+        \Buni\Cms\Models\Setting::set('mail_from_name', session('install_site_name', 'My CMS Site'), 'string', 'mail');
+
+        \Buni\Cms\Models\Setting::set('db_host', session('install_db_host', '127.0.0.1'), 'string', 'database');
+        \Buni\Cms\Models\Setting::set('db_port', session('install_db_port', '3306'), 'string', 'database');
+        \Buni\Cms\Models\Setting::set('db_database', session('install_db_database', 'laravel'), 'string', 'database');
+        \Buni\Cms\Models\Setting::set('db_username', session('install_db_username', 'root'), 'string', 'database');
+        \Buni\Cms\Models\Setting::set('db_password', session('install_db_password', ''), 'string', 'database');
+    }
+
     private function renderInstallStep($step)
     {
         $steps = [
@@ -197,6 +237,7 @@ class PageController extends Controller
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="dummy-token-for-install">
     <title>Install Buni CMS - Step ' . $step . '</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -817,17 +858,19 @@ class PageController extends Controller
                         }
 
                         // Submit the form
+                        const csrfToken = document.querySelector(\'meta[name="csrf-token"]\').getAttribute(\'content\');
                         const response = await fetch(window.location.href, {
                             method: "POST",
                             body: formData,
                             headers: {
-                                "X-Requested-With": "XMLHttpRequest"
+                                "X-Requested-With": "XMLHttpRequest",
+                                "X-CSRF-TOKEN": csrfToken
                             }
                         });
 
                         if (response.ok) {
-                            // Redirect to admin
-                            window.location.href = "/admin";
+                            // Redirect to admin login
+                            window.location.href = "/admin/login";
                         } else {
                             throw new Error("Installation failed");
                         }
