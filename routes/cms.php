@@ -5,7 +5,7 @@ use Buni\Cms\Controllers\Admin\DashboardController;
 use Buni\Cms\Controllers\Admin\PageController;
 use Buni\Cms\Controllers\Admin\PostController;
 use Buni\Cms\Controllers\Admin\SettingsController;
-use Buni\Cms\Controllers\Admin\UpdatesController;
+use Buni\Cms\Controllers\Admin\PluginsController;
 use Buni\Cms\Controllers\Frontend\PageController as FrontendPageController;
 
 Route::prefix(config('cms.admin_prefix'))->middleware(['web'])->group(function () {
@@ -27,6 +27,9 @@ Route::prefix(config('cms.admin_prefix'))->middleware(['web', 'auth', 'cms.maint
     Route::post('/updates/install', [UpdatesController::class, 'installUpdate'])->name('cms.admin.updates.install');
     Route::post('/updates/migrations', [UpdatesController::class, 'runMigrations'])->name('cms.admin.updates.migrations');
     Route::post('/updates/maintenance', [UpdatesController::class, 'toggleMaintenance'])->name('cms.admin.updates.maintenance');
+    Route::resource('plugins', PluginsController::class)->names('cms.admin.plugins');
+    Route::post('plugins/{plugin}/activate', [PluginsController::class, 'activate'])->name('cms.admin.plugins.activate');
+    Route::post('plugins/{plugin}/deactivate', [PluginsController::class, 'deactivate'])->name('cms.admin.plugins.deactivate');
     Route::post('/logout', [FrontendPageController::class, 'logout'])->name('cms.admin.logout');
 });
 

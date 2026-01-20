@@ -31,6 +31,21 @@ class CmsServiceProvider extends ServiceProvider
         $router->aliasMiddleware('cms.installed', \Buni\Cms\Middleware\EnsureCmsIsInstalled::class);
         $router->aliasMiddleware('cms.maintenance', \Buni\Cms\Middleware\CheckForMaintenanceMode::class);
 
+        // Create necessary directories
+        $pluginsPath = config('cms.plugins_path');
+        $themesPath = config('cms.themes_path');
+        $mediaPath = config('cms.media_path');
+
+        if (!File::exists($pluginsPath)) {
+            File::makeDirectory($pluginsPath, 0755, true);
+        }
+        if (!File::exists($themesPath)) {
+            File::makeDirectory($themesPath, 0755, true);
+        }
+        if (!File::exists($mediaPath)) {
+            File::makeDirectory($mediaPath, 0755, true);
+        }
+
         // Check if .env file exists and create minimal one if needed
         $envFile = base_path('.env');
         if (!file_exists($envFile) || !is_readable($envFile) || trim(file_get_contents($envFile)) === '') {

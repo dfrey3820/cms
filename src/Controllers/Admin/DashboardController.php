@@ -22,6 +22,7 @@ class DashboardController extends Controller
             'posts' => Post::count(),
             'published_pages' => Page::where('status', 'published')->count(),
             'published_posts' => Post::where('status', 'published')->count(),
+            'plugins' => $this->getPluginCount(),
         ];
 
         return Inertia::render('Admin/Dashboard', [
@@ -45,5 +46,24 @@ class DashboardController extends Controller
             }
             return config('cms.version');
         });
+    }
+
+    private function getPluginCount()
+    {
+        $pluginsPath = config('cms.plugins_path');
+        if (!\Illuminate\Support\Facades\File::exists($pluginsPath)) {
+            return 0;
+        }
+
+        $directories = \Illuminate\Support\Facades\File::directories($pluginsPath);
+        $count = 0;
+
+        foreach ($directories as $dir) {
+            if (\Illuminate\Support\Facades\File::exists($dir . '/plugin.json')) {
+                $count++;
+            }
+        }
+
+        return $count;
     }
 }
