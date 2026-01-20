@@ -28,9 +28,9 @@ class CmsServiceProvider extends ServiceProvider
 
         if ($this->app->runningInConsole()) {
             $this->commands([
-                \Dsc\Cms\Commands\InstallCommand::class,
-                \Dsc\Cms\Commands\CreatePluginCommand::class,
-                \Dsc\Cms\Commands\CreateThemeCommand::class,
+                \Buni\Cms\Commands\InstallCommand::class,
+                \Buni\Cms\Commands\CreatePluginCommand::class,
+                \Buni\Cms\Commands\CreateThemeCommand::class,
             ]);
         }
 
