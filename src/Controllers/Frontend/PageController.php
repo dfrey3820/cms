@@ -20,26 +20,6 @@ class PageController extends Controller
 
     public function show($slug = null)
     {
-        // Check if .env file exists and is valid
-        $envFile = base_path('.env');
-        if (!file_exists($envFile) || !is_readable($envFile) || trim(file_get_contents($envFile)) === '') {
-            $step = request('step', 1);
-            return $this->renderInstallStep($step);
-        }
-
-        // Check if CMS is installed (has users)
-        try {
-            $isInstalled = Schema::hasTable('users') && \App\Models\User::count() > 0;
-        } catch (\Exception $e) {
-            // Database doesn't exist or is not accessible, show installation
-            $isInstalled = false;
-        }
-
-        if (!$isInstalled) {
-            $step = request('step', 1);
-            return $this->renderInstallStep($step);
-        }
-
         $slug = $slug ?: 'home'; // Default to home page
 
         $page = Page::where('slug', $slug)->first();
@@ -219,13 +199,30 @@ class PageController extends Controller
                 // Create an empty SQLite database file
                 File::put($dbPath, '');
             }
+        } elseif (session('install_db_connection') === 'mysql') {
+            // For MySQL, try to create the database if it doesn't exist
+            try {
+                // Connect without specifying a database to create it
+                $pdo = new \PDO(
+                    'mysql:host=' . session('install_db_host') . ';port=' . session('install_db_port'),
+                    session('install_db_username'),
+                    session('install_db_password')
+                );
+                $pdo->exec('CREATE DATABASE IF NOT EXISTS `' . session('install_db_database') . '` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+            } catch (\Exception $e) {
+                // If we can't create the database, continue anyway - it might already exist
+                // The migration will fail if the database doesn't exist
+            }
         }
 
         // Run migrations (Laravel first, then CMS)
         \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
 
-        // Run seeder logic inline to create roles and settings
-        $this->runSeederLogic();
+        // Run the CMS seeder
+        \Illuminate\Support\Facades\Artisan::call('db:seed', [
+            '--class' => 'Buni\\Cms\\Database\\Seeders\\CmsSeeder',
+            '--force' => true
+        ]);
 
         // Create admin user
         $user = \App\Models\User::create([
@@ -396,49 +393,6 @@ EOT;
         }
 
         File::put($envFile, $envContent);
-    }
-
-    private function runSeederLogic()
-    {
-        // Create permissions
-        \Spatie\Permission\Models\Permission::create(['name' => 'manage pages']);
-        \Spatie\Permission\Models\Permission::create(['name' => 'manage users']);
-        \Spatie\Permission\Models\Permission::create(['name' => 'manage plugins']);
-        \Spatie\Permission\Models\Permission::create(['name' => 'manage themes']);
-        \Spatie\Permission\Models\Permission::create(['name' => 'manage settings']);
-
-        // Create roles
-        $admin = \Spatie\Permission\Models\Role::create(['name' => 'admin']);
-        $admin->givePermissionTo(['manage pages', 'manage users', 'manage plugins', 'manage themes', 'manage settings']);
-
-        $editor = \Spatie\Permission\Models\Role::create(['name' => 'editor']);
-        $editor->givePermissionTo(['manage pages']);
-
-        // Create super-admin role
-        $superAdmin = \Spatie\Permission\Models\Role::create(['name' => 'super-admin']);
-        $superAdmin->givePermissionTo(['manage pages', 'manage users', 'manage plugins', 'manage themes', 'manage settings']);
-
-        // Seed default settings
-        \Buni\Cms\Models\Setting::set('site_name', session('install_site_name', 'My CMS Site'), 'string', 'site');
-        \Buni\Cms\Models\Setting::set('site_description', '', 'string', 'site');
-        \Buni\Cms\Models\Setting::set('timezone', session('install_timezone', 'UTC'), 'string', 'site');
-        \Buni\Cms\Models\Setting::set('language', 'en', 'string', 'site');
-
-        \Buni\Cms\Models\Setting::set('mail_driver', session('install_mail_driver', 'smtp'), 'string', 'mail');
-        \Buni\Cms\Models\Setting::set('mail_host', session('install_mail_host', ''), 'string', 'mail');
-        \Buni\Cms\Models\Setting::set('mail_port', session('install_mail_port', '587'), 'string', 'mail');
-        \Buni\Cms\Models\Setting::set('mail_username', session('install_mail_username', ''), 'string', 'mail');
-        \Buni\Cms\Models\Setting::set('mail_password', session('install_mail_password', ''), 'string', 'mail');
-        \Buni\Cms\Models\Setting::set('mail_encryption', session('install_mail_encryption', 'tls'), 'string', 'mail');
-        \Buni\Cms\Models\Setting::set('mail_from_address', '', 'string', 'mail');
-        \Buni\Cms\Models\Setting::set('mail_from_name', session('install_site_name', 'My CMS Site'), 'string', 'mail');
-
-        \Buni\Cms\Models\Setting::set('db_connection', session('install_db_connection', 'mysql'), 'string', 'database');
-        \Buni\Cms\Models\Setting::set('db_host', session('install_db_host', '127.0.0.1'), 'string', 'database');
-        \Buni\Cms\Models\Setting::set('db_port', session('install_db_port', '3306'), 'string', 'database');
-        \Buni\Cms\Models\Setting::set('db_database', session('install_db_database', 'laravel'), 'string', 'database');
-        \Buni\Cms\Models\Setting::set('db_username', session('install_db_username', 'root'), 'string', 'database');
-        \Buni\Cms\Models\Setting::set('db_password', session('install_db_password', ''), 'string', 'database');
     }
 
     private function renderInstallStep($step)
@@ -667,9 +621,28 @@ EOT;
                 <p class="text-lg text-gray-600 font-medium">
                     Step <span class="text-blue-600 font-bold">' . $step . '</span> of <span class="font-bold">' . count($steps) . '</span>: <span class="text-gray-800">' . $steps[$step] . '</span>
                 </p>
-            </div>
+            </div>';
 
-            <!-- Progress Indicator -->
+        // Display message if any
+        $message = session('message');
+        if ($message) {
+            $html .= '<div class="mb-8 animate-slide-in-right">
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-yellow-700">' . htmlspecialchars($message) . '</p>
+                        </div>
+                    </div>
+                </div>
+            </div>';
+        }
+
+        $html .= '<!-- Progress Indicator -->
             <div class="flex justify-center mb-8 animate-slide-in-right">
                 <div class="flex space-x-4">';
         for ($i = 1; $i <= count($steps); $i++) {
@@ -963,47 +936,45 @@ EOT;
                 <p class="text-gray-600">Configure your website basic settings</p>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="space-y-6">
-                    <div class="form-group">
-                        <label for="site_name" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                            <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                            </svg>
-                            Site Name
-                        </label>
-                        <input id="site_name" name="site_name" type="text" required
-                               class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-green-500 transition-all duration-200 bg-white shadow-sm"
-                               placeholder="My Awesome Website" />
-                    </div>
+            <div class="space-y-6">
+                <div class="form-group">
+                    <label for="site_name" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                        <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                        Site Name
+                    </label>
+                    <input id="site_name" name="site_name" type="text" required
+                           class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-green-500 transition-all duration-200 bg-white shadow-sm"
+                           placeholder="My Awesome Website" />
+                </div>
 
-                    <div class="form-group">
-                        <label for="site_url" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                            <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
-                            </svg>
-                            Site URL
-                        </label>
-                        <input id="site_url" name="site_url" type="url" required
-                               class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-green-500 transition-all duration-200 bg-white shadow-sm"
-                               placeholder="https://example.com" value="' . htmlspecialchars($currentUrl) . '" />
-                        <p class="mt-1 text-xs text-gray-500">
-                            The base URL of your website (auto-detected from current request)
-                        </p>
-                    </div>
+                <div class="form-group">
+                    <label for="site_url" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                        <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                        </svg>
+                        Site URL
+                    </label>
+                    <input id="site_url" name="site_url" type="url" required
+                           class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-green-500 transition-all duration-200 bg-white shadow-sm"
+                           placeholder="https://example.com" value="' . htmlspecialchars($currentUrl) . '" />
+                    <p class="mt-1 text-xs text-gray-500">
+                        The base URL of your website (auto-detected from current request)
+                    </p>
+                </div>
 
-                    <div class="form-group">
-                        <label for="timezone" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                            <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                            </svg>
-                            Timezone
-                        </label>
-                        <select id="timezone" name="timezone" required
-                                class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-green-500 transition-all duration-200 bg-white shadow-sm">
-                            ' . $timezoneOptions . '
-                        </select>
-                    </div>
+                <div class="form-group">
+                    <label for="timezone" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                        <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                        Timezone
+                    </label>
+                    <select id="timezone" name="timezone" required
+                            class="input-focus w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 brand-ring focus:border-green-500 transition-all duration-200 bg-white shadow-sm">
+                        ' . $timezoneOptions . '
+                    </select>
                 </div>
             </div>
         </div>';

@@ -24,6 +24,8 @@ Route::middleware(['web'])->group(function () {
     Route::get('/install', [FrontendPageController::class, 'showInstall'])->name('cms.install.get');
     Route::post('/install', [FrontendPageController::class, 'install'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])->name('cms.install');
     
-    // Frontend routes
-    Route::get('/{slug?}', [FrontendPageController::class, 'show'])->where('slug', '.*')->name('cms.page');
+    // Frontend routes - protected by installation middleware
+    Route::middleware(['cms.installed'])->group(function () {
+        Route::get('/{slug?}', [FrontendPageController::class, 'show'])->where('slug', '.*')->name('cms.page');
+    });
 });
