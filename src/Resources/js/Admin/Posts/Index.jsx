@@ -1,8 +1,9 @@
 import React from 'react';
 import { Link } from '@inertiajs/react';
 import { HomeIcon, DocumentTextIcon, PencilSquareIcon, Cog6ToothIcon, ArrowPathIcon, PuzzlePieceIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
+import Header from '../components/Header';
 
-export default function Index() {
+export default function Index({ auth }) {
     const menuItems = [
         { name: 'Dashboard', href: '/admin', icon: HomeIcon },
         { name: 'Pages', href: '/admin/pages', icon: DocumentTextIcon },
@@ -47,7 +48,10 @@ export default function Index() {
             </div>
 
             {/* Main content */}
-            <div className="flex-1 p-8">
+            <div className="flex-1 flex flex-col">
+                <Header auth={auth} />
+
+                <div className="flex-1 p-8">
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-800">Posts</h1>

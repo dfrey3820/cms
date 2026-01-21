@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from '@inertiajs/react';
-import { HomeIcon, DocumentTextIcon, PencilSquareIcon, Cog6ToothIcon, ArrowPathIcon, PuzzlePieceIcon, ArrowRightOnRectangleIcon, UserCircleIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { HomeIcon, DocumentTextIcon, PencilSquareIcon, Cog6ToothIcon, ArrowPathIcon, PuzzlePieceIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
+import Header from '../components/Header';
 
 export default function Dashboard({ auth }) {
     const menuItems = [
@@ -48,22 +49,7 @@ export default function Dashboard({ auth }) {
 
             {/* Main content */}
             <div className="flex-1 flex flex-col">
-                {/* Header */}
-                <header className="bg-white shadow-sm border-b">
-                    <div className="px-8 py-4 flex justify-between items-center">
-                        <div className="flex-1"></div>
-                        <div className="flex items-center space-x-4">
-                            <div className="relative">
-                                <button className="flex items-center space-x-2 text-gray-700 hover:text-gray-900">
-                                    <UserCircleIcon className="w-8 h-8" />
-                                    <span>{auth?.user?.name || 'Admin'}</span>
-                                    <ChevronDownIcon className="w-4 h-4" />
-                                </button>
-                                {/* Dropdown menu would go here */}
-                            </div>
-                        </div>
-                    </div>
-                </header>
+                <Header auth={auth} />
 
                 <div className="flex-1 p-8">
                 <h1 className="text-3xl font-bold text-gray-800 mb-4">Dashboard</h1>

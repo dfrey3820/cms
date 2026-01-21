@@ -7,6 +7,7 @@ use Buni\Cms\Controllers\Admin\PostController;
 use Buni\Cms\Controllers\Admin\SettingsController;
 use Buni\Cms\Controllers\Admin\UpdatesController;
 use Buni\Cms\Controllers\Admin\PluginsController;
+use Buni\Cms\Controllers\Admin\ProfileController;
 use Buni\Cms\Controllers\Frontend\PageController as FrontendPageController;
 
 Route::prefix(config('cms.admin_prefix'))->middleware(['web'])->group(function () {
@@ -23,6 +24,9 @@ Route::prefix(config('cms.admin_prefix'))->middleware(['web', 'auth', 'cms.maint
     Route::get('/settings', [SettingsController::class, 'index'])->name('cms.admin.settings');
     Route::post('/settings', [SettingsController::class, 'update'])->name('cms.admin.settings.update');
     Route::post('/settings/editor', [SettingsController::class, 'updateEditor'])->name('cms.admin.settings.editor.update');
+    Route::get('/profile', [ProfileController::class, 'index'])->name('cms.admin.profile');
+    Route::post('/profile', [ProfileController::class, 'update'])->name('cms.admin.profile.update');
+    Route::post('/profile/password', [ProfileController::class, 'updatePassword'])->name('cms.admin.profile.password');
     Route::get('/updates', [\Buni\Cms\Controllers\Admin\UpdatesController::class, 'index'])->name('cms.admin.updates');
     Route::post('/updates/check', [\Buni\Cms\Controllers\Admin\UpdatesController::class, 'checkForUpdates'])->name('cms.admin.updates.check');
     Route::post('/updates/install', [\Buni\Cms\Controllers\Admin\UpdatesController::class, 'installUpdate'])->name('cms.admin.updates.install');

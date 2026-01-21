@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { HomeIcon, DocumentTextIcon, PencilSquareIcon, Cog6ToothIcon, ArrowPathIcon, PuzzlePieceIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
+import Header from '../components/Header';
 
-export default function Index({ settings }) {
+export default function Index({ settings, auth }) {
     const [activeTab, setActiveTab] = useState('site');
     const { data, setData, post, processing, errors, reset } = useForm({});
 
@@ -33,6 +34,7 @@ export default function Index({ settings }) {
     const tabs = [
         { id: 'site', label: 'Site', icon: 'fas fa-globe' },
         { id: 'system', label: 'System', icon: 'fas fa-cogs' },
+        { id: 'security', label: 'Security', icon: 'fas fa-shield' },
         { id: 'server', label: 'Server', icon: 'fas fa-server' },
         { id: 'mail', label: 'Mail', icon: 'fas fa-envelope' },
         { id: 'database', label: 'Database', icon: 'fas fa-database' },
@@ -56,6 +58,28 @@ export default function Index({ settings }) {
     };
 
     const renderTabContent = () => {
+        if (activeTab === 'security') {
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white p-6 rounded-lg shadow-sm border">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Two-Factor Authentication
+                        </label>
+                        <div className="flex items-center">
+                            <input
+                                type="checkbox"
+                                checked={data['two_factor_enabled'] || false}
+                                onChange={(e) => handleInputChange('two_factor_enabled', e.target.checked)}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">Enable Two-Factor Authentication</span>
+                        </div>
+                        {errors['two_factor_enabled'] && <p className="mt-1 text-sm text-red-600">{errors['two_factor_enabled']}</p>}
+                    </div>
+                </div>
+            );
+        }
+
         const groupSettings = settings[activeTab] || [];
 
         return (
@@ -118,7 +142,10 @@ export default function Index({ settings }) {
                 </div>
 
                 {/* Main content */}
-                <div className="flex-1 p-8">
+                <div className="flex-1 flex flex-col">
+                    <Header auth={auth} />
+
+                    <div className="flex-1 p-8">
                     <h1 className="text-3xl font-bold text-gray-800 mb-4">Settings</h1>
                     <p className="text-gray-600 mb-8">Configure your CMS settings here.</p>
 

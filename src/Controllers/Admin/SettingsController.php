@@ -38,7 +38,8 @@ class SettingsController extends Controller
                 // Find the setting to get its group
                 $setting = Setting::where('key', $key)->first();
                 if ($setting) {
-                    Setting::set($key, $value, 'string', $setting->group);
+                    $type = $key === 'two_factor_enabled' ? 'boolean' : 'string';
+                    Setting::set($key, $value, $type, $setting->group);
                 }
             }
         }
