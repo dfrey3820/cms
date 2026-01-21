@@ -64,94 +64,25 @@ export default function Index({ pages }) {
                 {/* Pages list */}
                 <div className="bg-white rounded-lg shadow">
                     <div className="p-6">
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Title
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Slug
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Status
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Updated
-                                        </th>
-                                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Actions
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {pages && pages.length > 0 ? (
-                                        pages.map(page => (
-                                            <tr key={page.id}>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="text-sm font-medium text-gray-900">{page.title}</div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="text-sm text-gray-500">/{page.slug}</div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                                        page.status === 'published'
-                                                            ? 'bg-green-100 text-green-800'
-                                                            : 'bg-yellow-100 text-yellow-800'
-                                                    }`}>
-                                                        {page.status || 'draft'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                    {page.updated_at ? new Date(page.updated_at).toLocaleDateString() : 'Never'}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                    <Link
-                                                        href={`/admin/pages/${page.id}/edit`}
-                                                        className="text-blue-600 hover:text-blue-900 mr-4"
-                                                    >
-                                                        Edit
-                                                    </Link>
-                                                    <Link
-                                                        href={`/admin/pages/${page.id}`}
-                                                        className="text-gray-600 hover:text-gray-900"
-                                                    >
-                                                        View
-                                                    </Link>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        /* Skeleton loading rows */
-                                        Array.from({ length: 5 }).map((_, index) => (
-                                            <tr key={index} className="animate-pulse">
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="h-4 bg-gray-200 rounded w-48"></div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="h-4 bg-gray-200 rounded w-24"></div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="h-4 bg-gray-200 rounded w-16"></div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="h-4 bg-gray-200 rounded w-20"></div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-right">
-                                                    <div className="h-4 bg-gray-200 rounded w-12 ml-auto"></div>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                        {(!pages || pages.length === 0) && (
-                            <div className="mt-4 text-center text-gray-500">
-                                <p>No pages found. <Link href="/admin/pages/create" className="text-blue-600 hover:text-blue-800">Create your first page</Link></p>
-                            </div>
+                        {pages && pages.length > 0 ? (
+                            <ul className="space-y-4">
+                                {pages.map(page => (
+                                    <li key={page.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-800">{page.title}</h3>
+                                            <p className="text-gray-600">{page.slug}</p>
+                                        </div>
+                                        <Link
+                                            href={`/admin/pages/${page.id}/edit`}
+                                            className="text-blue-600 hover:text-blue-800"
+                                        >
+                                            Edit
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-gray-600">No pages found. <Link href="/admin/pages/create" className="text-blue-600 hover:text-blue-800">Create your first page</Link></p>
                         )}
                     </div>
                 </div>
