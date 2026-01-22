@@ -309,11 +309,19 @@ class BuniCmsComposerPlugin implements PluginInterface, EventSubscriberInterface
             @mkdir($appThemesDir, 0755, true);
         }
 
+        // Scan both the package root and a possible 'themes/' subdirectory for theme folders
         $entries = scandir($packageDir);
+        $themeSubdir = $packageDir . '/themes';
+        $subEntries = [];
+        if (is_dir($themeSubdir)) {
+            $subEntries = scandir($themeSubdir);
+        }
+
+        // First, check top-level entries
         foreach ($entries as $entry) {
             if ($entry === '.' || $entry === '..') continue;
             $candidate = $packageDir . '/' . $entry;
-                if (is_dir($candidate) && file_exists($candidate . '/theme.json')) {
+            if (is_dir($candidate) && file_exists($candidate . '/theme.json')) {
                 // If the theme declares a package.json, try to build it (npm)
                 if (file_exists($candidate . '/package.json')) {
                     $this->io->write('<comment>buni/cms plugin: found package.json for theme ' . $entry . ', attempting npm install and build.</comment>');
@@ -331,6 +339,32 @@ class BuniCmsComposerPlugin implements PluginInterface, EventSubscriberInterface
                 $dest = $appThemesDir . '/' . $entry;
                 $this->recursiveCopy($candidate, $dest);
                 $this->io->write('<info>buni/cms plugin: copied theme ' . $entry . ' to themes/' . $entry . '.</info>');
+            }
+        }
+
+        // Then, check entries inside packageDir/themes
+        foreach ($subEntries as $entry) {
+            if ($entry === '.' || $entry === '..') continue;
+            $candidate = $themeSubdir . '/' . $entry;
+            if (is_dir($candidate) && file_exists($candidate . '/theme.json')) {
+                // If the theme declares a package.json, try to build it (npm)
+                if (file_exists($candidate . '/package.json')) {
+                    $this->io->write('<comment>buni/cms plugin: found package.json for theme ' . $entry . ', attempting npm install and build.</comment>');
+                    $npmResult = $this->runCommand('npm ci --no-audit --prefer-offline', $candidate);
+                    $this->io->write($npmResult['output']);
+                    $buildResult = $this->runCommand('npm run build --silent', $candidate);
+                    $this->io->write($buildResult['output']);
+                    if ($npmResult['exit'] !== 0 || $buildResult['exit'] !== 0) {
+                        $this->io->write('<comment>buni/cms plugin: theme build failed for ' . $entry . '. Continuing and copying available files.</comment>');
+                    } else {
+                        $this->io->write('<info>buni/cms plugin: theme build succeeded for ' . $entry . '.</info>');
+                    }
+                }
+
+                $dest = $appThemesDir . '/' . $entry;
+                $this->recursiveCopy($candidate, $dest);
+                $this->io->write('<info>buni/cms plugin: copied theme ' . $entry . ' to themes/' . $entry . '.</info>');
+            }
             }
         }
     }
