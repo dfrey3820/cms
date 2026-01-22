@@ -26,6 +26,7 @@
         }
     },
     "extra": {
+        "class": "Buni\\Cms\\Composer\\BuniCmsComposerPlugin",
         "laravel": {
             "providers": [
                 "Buni\\Cms\\Providers\\CmsServiceProvider"
