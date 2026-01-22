@@ -10,7 +10,8 @@ use Buni\Cms\Controllers\Admin\PluginsController;
 use Buni\Cms\Controllers\Admin\ProfileController;
 use Buni\Cms\Controllers\Frontend\PageController as FrontendPageController;
 
-Route::prefix(config('cms.admin_prefix'))->middleware(['web'])->group(function () {
+// Auth routes use a separate prefix so they can be exposed at /auth
+Route::prefix(config('cms.auth_prefix', 'auth'))->middleware(['web'])->group(function () {
     Route::get('/login', [FrontendPageController::class, 'showLogin'])->name('cms.admin.login');
     Route::post('/login', [FrontendPageController::class, 'login'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])->name('cms.admin.login.post');
     // Registration and password reset handled by CMS

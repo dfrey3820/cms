@@ -32,8 +32,9 @@ class EnsureCmsIsInstalled
         }
 
         if (!$isInstalled) {
-            // Allow access to installation routes and admin login
-            if ($request->is('install*') || $request->is('admin/login*')) {
+            // Allow access to installation routes and the auth login prefix
+            $authPrefix = config('cms.auth_prefix', 'auth');
+            if ($request->is('install*') || $request->is($authPrefix . '/login*')) {
                 return $next($request);
             }
 

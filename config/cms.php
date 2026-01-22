@@ -6,5 +6,6 @@ return [
     'themes_path' => base_path('themes'),
     'media_path' => public_path('media'),
     'admin_prefix' => 'admin',
+    'auth_prefix' => 'auth',
     'frontend_prefix' => '',
 ];
