@@ -365,7 +365,6 @@ class BuniCmsComposerPlugin implements PluginInterface, EventSubscriberInterface
                 $this->recursiveCopy($candidate, $dest);
                 $this->io->write('<info>buni/cms plugin: copied theme ' . $entry . ' to themes/' . $entry . '.</info>');
             }
-            }
         }
     }
 
