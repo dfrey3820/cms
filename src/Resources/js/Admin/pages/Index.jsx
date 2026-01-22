@@ -10,6 +10,7 @@ export default function Index({ pages, auth }) {
         { name: 'Posts', href: '/admin/posts', icon: PencilSquareIcon },
         { name: 'Updates', href: '/admin/updates', icon: ArrowPathIcon },
         { name: 'Plugins', href: '/admin/plugins', icon: PuzzlePieceIcon },
+        { name: 'Themes', href: '/admin/themes', icon: PuzzlePieceIcon },
         { name: 'Users', href: '/admin/users', icon: PencilSquareIcon },
         { name: 'Settings', href: '/admin/settings', icon: Cog6ToothIcon },
     ];

@@ -8,6 +8,7 @@ use Buni\Cms\Controllers\Admin\SettingsController;
 use Buni\Cms\Controllers\Admin\UpdatesController;
 use Buni\Cms\Controllers\Admin\PluginsController;
 use Buni\Cms\Controllers\Admin\ProfileController;
+use Buni\Cms\Controllers\Admin\ThemesController;
 use Buni\Cms\Controllers\Frontend\PageController as FrontendPageController;
 
 // Auth routes use a separate prefix so they can be exposed at /auth
@@ -47,6 +48,9 @@ Route::prefix(config('cms.admin_prefix'))->middleware(['web', 'auth', 'cms.maint
     Route::resource('users', \Buni\Cms\Controllers\Admin\UserController::class)->names('cms.admin.users');
     Route::post('/users/{user}/send-reset', [\Buni\Cms\Controllers\Admin\UserController::class, 'sendReset'])->name('cms.admin.users.send-reset');
     Route::post('/logout', [FrontendPageController::class, 'logout'])->name('cms.admin.logout');
+    // Themes
+    Route::get('/themes', [ThemesController::class, 'index'])->name('cms.admin.themes');
+    Route::post('/themes/{theme}/activate', [ThemesController::class, 'activate'])->name('cms.admin.themes.activate');
 });
 
 Route::middleware(['web'])->group(function () {
