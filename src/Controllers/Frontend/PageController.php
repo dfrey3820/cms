@@ -1377,11 +1377,33 @@ EOT;
 
     public function showRegister()
     {
+        // Respect CMS setting to allow user registrations
+        try {
+            $allow = \Buni\Cms\Models\Setting::get('allow_registration', '0');
+        } catch (\Exception $e) {
+            $allow = '0';
+        }
+
+        if ($allow !== '1' && $allow !== 1 && $allow !== true) {
+            return redirect()->route('cms.admin.login')->with('message', 'Registrations are disabled.');
+        }
+
         return $this->renderRegisterPage();
     }
 
     public function register(Request $request)
     {
+        // Respect CMS setting to allow user registrations
+        try {
+            $allow = \Buni\Cms\Models\Setting::get('allow_registration', '0');
+        } catch (\Exception $e) {
+            $allow = '0';
+        }
+
+        if ($allow !== '1' && $allow !== 1 && $allow !== true) {
+            return redirect()->route('cms.admin.login')->withErrors(['registration' => 'Registrations are disabled.']);
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email',
