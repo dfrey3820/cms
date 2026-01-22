@@ -220,8 +220,17 @@ class BuniCmsComposerPlugin implements PluginInterface, EventSubscriberInterface
         $this->io->write('<comment>buni/cms plugin: attempting to build core Tailwind CSS...</comment>');
         $result = $this->runCommand($cmd, $rootDir);
         if ($result['exit'] !== 0) {
-            $this->io->write('<comment>buni/cms plugin: core Tailwind build failed or npx not available. Skipping. Output:</comment>');
+            $this->io->write('<comment>buni/cms plugin: core Tailwind build failed or npx not available. Will copy bundled fallback stylesheet. Output:</comment>');
             $this->io->write($result['output']);
+
+            // If the package includes a precompiled fallback, copy it into place
+            $fallback = $packageDir . '/resources/css/tailwind.compiled.css';
+            if (file_exists($fallback)) {
+                copy($fallback, $output);
+                $this->io->write('<info>buni/cms plugin: copied bundled fallback CSS to public/vendor/cms/tailwind.css</info>');
+            } else {
+                $this->io->write('<error>buni/cms plugin: no fallback CSS available in package; core styles may be missing.</error>');
+            }
         } else {
             $this->io->write('<info>buni/cms plugin: built core Tailwind CSS to public/vendor/cms/tailwind.css</info>');
         }
