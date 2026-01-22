@@ -198,10 +198,41 @@ class BuniCmsComposerPlugin implements PluginInterface, EventSubscriberInterface
             return;
         }
 
+        // Check root composer.json extra to see if safe route editing is enabled.
+        $rootComposer = $this->getRootComposerJsonPath();
+        $extraConfig = [];
+        if (file_exists($rootComposer)) {
+            $rootData = json_decode((string) file_get_contents($rootComposer), true);
+            if (is_array($rootData) && isset($rootData['extra']) && is_array($rootData['extra'])) {
+                $extraConfig = $rootData['extra'];
+            }
+        }
+
+        $enabled = false;
+        if (isset($extraConfig['buni-cms']) && is_array($extraConfig['buni-cms']) && !empty($extraConfig['buni-cms']['safe_route_edit'])) {
+            $enabled = (bool) $extraConfig['buni-cms']['safe_route_edit'];
+        }
+
+        if (!$enabled) {
+            $this->io->write('<comment>buni/cms plugin: safe_route_edit not enabled in composer.json extra; skipping route edits.</comment>');
+            return;
+        }
+
+        // Back up existing routes/web.php before making changes
+        $vendorDir = $this->composer->getConfig()->get('vendor-dir');
+        $backupDir = $vendorDir . '/buni/cms/backups';
+        if (!is_dir($backupDir)) {
+            @mkdir($backupDir, 0755, true);
+        }
+        $timestamp = date('YmdHis');
+        $backupFile = $backupDir . '/routes.web.php.' . $timestamp . '.bak';
+        copy($routesFile, $backupFile);
+        $this->io->write('<info>buni/cms plugin: backed up routes/web.php to ' . $backupFile . '.</info>');
+
         $content = file_get_contents($routesFile);
 
         // Remove existing login/password/two-factor route definitions (simple approach)
-        $pattern = '/^\s*Route::(?:get|post)\(\s*["\'](?:\\/)?(?:login|password\/reset|password\/email|password\/confirm|two-factor|two-factor\/challenge)["\'][\s\S]*?;\s*$/m';
+        $pattern = '/^\s*Route::(?:get|post)\(\s*["\'](?:\\/)?(?:login|password\\/reset|password\\/email|password\\/confirm|two-factor|two-factor\\/challenge)["\'][\s\S]*?;\s*$/m';
         $new = preg_replace($pattern, '', $content);
 
         // Remove previous Buni CMS auth block if exists
@@ -213,7 +244,7 @@ class BuniCmsComposerPlugin implements PluginInterface, EventSubscriberInterface
         $new = rtrim($new, "\n") . "\n" . $block;
 
         file_put_contents($routesFile, $new);
-        $this->io->write('<info>buni/cms plugin: ensured /login routes point to the CMS.</info>');
+        $this->io->write('<info>buni/cms plugin: ensured /login routes point to the CMS (safe edit).</info>');
     }
 
     private function copyPackageThemesToApp()
