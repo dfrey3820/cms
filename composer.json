@@ -1,6 +1,5 @@
 {
     "name": "buni/cms",
-    "version": "1.3.2",
     "description": "A Laravel package that transforms a Laravel Inertia React app into a full WordPress-like CMS",
     "keywords": ["laravel", "cms", "inertia", "react","buni cms", "wordpress-like"],
     "type": "composer-plugin",
