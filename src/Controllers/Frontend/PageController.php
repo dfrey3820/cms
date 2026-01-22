@@ -1357,7 +1357,20 @@ EOT;
 
         if (\Illuminate\Support\Facades\Auth::attempt($request->only('email', 'password'), $request->boolean('remember'))) {
             $request->session()->regenerate();
-            return redirect()->intended('/admin');
+            $user = \Illuminate\Support\Facades\Auth::user();
+
+            // Redirect admins to the admin dashboard, others to the frontend home
+            try {
+                $isAdmin = false;
+                if (method_exists($user, 'hasAnyRole')) {
+                    $isAdmin = $user->hasAnyRole(['super-admin', 'admin', 'administrator']);
+                }
+            } catch (\Exception $e) {
+                $isAdmin = false;
+            }
+
+            $redirect = $isAdmin ? route('cms.admin.dashboard') : '/';
+            return redirect()->intended($redirect);
         }
 
         return back()->withErrors([
