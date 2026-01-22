@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Install Buni CMS</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="<?php echo asset('vendor/cms/tailwind.css'); ?>">
+    <?php if (app()->bound(\Buni\Cms\Services\HookManager::class)) { app(\Buni\Cms\Services\HookManager::class)->doAction('cms_enqueue_scripts'); } ?>
 </head>
 <body class="bg-gray-50">
     <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $page->title }}</title>
-    <link rel="stylesheet" href="https://cdn.tailwindcss.com">
+    <link rel="stylesheet" href="<?php echo asset('vendor/cms/tailwind.css'); ?>">
+    <?php if (app()->bound(\Buni\Cms\Services\HookManager::class)) { app(\Buni\Cms\Services\HookManager::class)->doAction('cms_enqueue_scripts'); } ?>
     @if(file_exists(public_path('themes/default/template.css')))
         <link rel="stylesheet" href="{{ asset('themes/default/template.css') }}">
     @endif

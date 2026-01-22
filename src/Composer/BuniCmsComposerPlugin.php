@@ -100,6 +100,9 @@ class BuniCmsComposerPlugin implements PluginInterface, EventSubscriberInterface
         // Copy package themes into the application's themes directory
         $this->copyPackageThemesToApp();
 
+        // Attempt to build core Tailwind CSS into public/vendor/cms/tailwind.css
+        $this->buildCoreTailwind($rootDir, $packageDir ?? null);
+
         $this->io->write('<comment>Attempting to run composer update to apply changes...</comment>');
         $result = $this->runCommand('composer update --no-interaction', $rootDir);
         if ($result['exit'] !== 0) {
@@ -188,6 +191,40 @@ class BuniCmsComposerPlugin implements PluginInterface, EventSubscriberInterface
 
         // Copy/update package themes into the application's themes directory
         $this->copyPackageThemesToApp();
+
+        // Attempt to build core Tailwind CSS into public/vendor/cms/tailwind.css
+        $this->buildCoreTailwind($rootDir, $this->composer->getConfig()->get('vendor-dir') . '/buni/cms');
+    }
+
+    private function buildCoreTailwind(string $rootDir, ?string $packageDir = null)
+    {
+        if (empty($packageDir)) {
+            $packageDir = $this->composer->getConfig()->get('vendor-dir') . '/buni/cms';
+        }
+
+        $input = $packageDir . '/resources/css/tailwind.css';
+        if (!file_exists($input)) {
+            $this->io->write('<info>buni/cms plugin: core Tailwind input not found; skipping build.</info>');
+            return;
+        }
+
+        $destDir = $rootDir . '/public/vendor/cms';
+        if (!is_dir($destDir)) {
+            @mkdir($destDir, 0755, true);
+        }
+
+        $output = $destDir . '/tailwind.css';
+
+        // Prefer npx tailwindcss if available in the environment
+        $cmd = 'npx tailwindcss -i ' . escapeshellarg($input) . ' -o ' . escapeshellarg($output) . ' --minify';
+        $this->io->write('<comment>buni/cms plugin: attempting to build core Tailwind CSS...</comment>');
+        $result = $this->runCommand($cmd, $rootDir);
+        if ($result['exit'] !== 0) {
+            $this->io->write('<comment>buni/cms plugin: core Tailwind build failed or npx not available. Skipping. Output:</comment>');
+            $this->io->write($result['output']);
+        } else {
+            $this->io->write('<info>buni/cms plugin: built core Tailwind CSS to public/vendor/cms/tailwind.css</info>');
+        }
     }
 
     private function ensureLoginRoutes(string $rootDir)

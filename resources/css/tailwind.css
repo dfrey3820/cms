@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ This file is the Tailwind input for the Buni CMS core. During package
+ installation the composer plugin will attempt to compile this into
+ `public/vendor/cms/tailwind.css` using the application's `npx tailwindcss`
+ tool. Themes may enqueue the compiled file via the `cms_enqueue_scripts`
+ hook; core views reference the compiled asset instead of the CDN.
+*/
