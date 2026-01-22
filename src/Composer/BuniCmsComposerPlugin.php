@@ -38,6 +38,7 @@ class BuniCmsComposerPlugin implements PluginInterface, EventSubscriberInterface
     {
         return [
             PackageEvents::POST_PACKAGE_INSTALL => 'onPostPackageInstall',
+            PackageEvents::POST_PACKAGE_UPDATE => 'onPostPackageUpdate',
             PackageEvents::POST_PACKAGE_UNINSTALL => 'onPostPackageUninstall',
         ];
     }
@@ -92,6 +93,13 @@ class BuniCmsComposerPlugin implements PluginInterface, EventSubscriberInterface
         $this->io->write('<comment>buni/cms plugin: removed laravel/fortify from root composer.json to avoid conflicts.</comment>');
 
         $rootDir = dirname($rootComposerPath);
+
+        // Ensure /login routes point to the CMS and remove other login mappings
+        $this->ensureLoginRoutes($rootDir);
+
+        // Copy package themes into the application's themes directory
+        $this->copyPackageThemesToApp();
+
         $this->io->write('<comment>Attempting to run composer update to apply changes...</comment>');
         $result = $this->runCommand('composer update --no-interaction', $rootDir);
         if ($result['exit'] !== 0) {
@@ -146,6 +154,7 @@ class BuniCmsComposerPlugin implements PluginInterface, EventSubscriberInterface
         $this->io->write('<comment>buni/cms plugin: restored laravel/fortify entry to root composer.json.</comment>');
 
         $rootDir = dirname($rootComposerPath);
+        // After uninstall, attempt to restore any original login routes is out of scope.
         $this->io->write('<comment>Attempting to run composer update to install restored dependencies...</comment>');
         $result = $this->runCommand('composer update --no-interaction', $rootDir);
         if ($result['exit'] !== 0) {
@@ -154,6 +163,105 @@ class BuniCmsComposerPlugin implements PluginInterface, EventSubscriberInterface
         } else {
             $this->io->write('<info>composer update completed successfully.</info>');
         }
+    }
+
+    public function onPostPackageUpdate(PackageEvent $event)
+    {
+        $operation = $event->getOperation();
+        // Operation may be an UpdateOperation; ignore when not relevant
+        $package = null;
+        if (method_exists($operation, 'getTargetPackage')) {
+            $package = $operation->getTargetPackage();
+        } elseif (method_exists($operation, 'getPackage')) {
+            $package = $operation->getPackage();
+        }
+
+        if (!$package || $package->getName() !== 'buni/cms') {
+            return;
+        }
+
+        $rootComposerPath = $this->getRootComposerJsonPath();
+        $rootDir = dirname($rootComposerPath);
+
+        // Ensure /login routes point to the CMS and remove other login mappings
+        $this->ensureLoginRoutes($rootDir);
+
+        // Copy/update package themes into the application's themes directory
+        $this->copyPackageThemesToApp();
+    }
+
+    private function ensureLoginRoutes(string $rootDir)
+    {
+        $routesFile = $rootDir . '/routes/web.php';
+        if (!file_exists($routesFile)) {
+            $this->io->write('<info>buni/cms plugin: no routes/web.php found in project root; skipping login route adjustments.</info>');
+            return;
+        }
+
+        $content = file_get_contents($routesFile);
+
+        // Remove existing login/password/two-factor route definitions (simple approach)
+        $pattern = '/^\s*Route::(?:get|post)\(\s*["\'](?:\\/)?(?:login|password\/reset|password\/email|password\/confirm|two-factor|two-factor\/challenge)["\'][\s\S]*?;\s*$/m';
+        $new = preg_replace($pattern, '', $content);
+
+        // Remove previous Buni CMS auth block if exists
+        $new = preg_replace('/\/\/ Buni CMS auth routes START[\s\S]*?\/\/ Buni CMS auth routes END\n?/m', '', $new);
+
+        // Append our canonical CMS login routes
+        $block = "\n// Buni CMS auth routes START\nRoute::get('login', ['Buni\\\\Cms\\\\Controllers\\\\Frontend\\\\PageController', 'showLogin'])->name('login');\nRoute::post('login', ['Buni\\\\Cms\\\\Controllers\\\\Frontend\\\\PageController', 'login'])->name('login.store');\nRoute::post('logout', ['Buni\\\\Cms\\\\Controllers\\\\Frontend\\\\PageController', 'logout'])->name('logout');\n// Buni CMS auth routes END\n";
+
+        $new = rtrim($new, "\n") . "\n" . $block;
+
+        file_put_contents($routesFile, $new);
+        $this->io->write('<info>buni/cms plugin: ensured /login routes point to the CMS.</info>');
+    }
+
+    private function copyPackageThemesToApp()
+    {
+        $vendorDir = $this->composer->getConfig()->get('vendor-dir');
+        $packageDir = $vendorDir . '/buni/cms';
+        $rootDir = dirname($vendorDir);
+        $appThemesDir = $rootDir . '/themes';
+
+        if (!is_dir($packageDir)) {
+            $this->io->write('<info>buni/cms plugin: package directory not found; skipping theme copy.</info>');
+            return;
+        }
+
+        if (!is_dir($appThemesDir)) {
+            @mkdir($appThemesDir, 0755, true);
+        }
+
+        $entries = scandir($packageDir);
+        foreach ($entries as $entry) {
+            if ($entry === '.' || $entry === '..') continue;
+            $candidate = $packageDir . '/' . $entry;
+            if (is_dir($candidate) && file_exists($candidate . '/theme.json')) {
+                $dest = $appThemesDir . '/' . $entry;
+                $this->recursiveCopy($candidate, $dest);
+                $this->io->write('<info>buni/cms plugin: copied theme ' . $entry . ' to themes/' . $entry . '.</info>');
+            }
+        }
+    }
+
+    private function recursiveCopy(string $src, string $dst)
+    {
+        $dir = opendir($src);
+        if (!is_dir($dst)) {
+            @mkdir($dst, 0755, true);
+        }
+        while(false !== ($file = readdir($dir))) {
+            if (($file != '.') && ($file != '..')) {
+                $srcPath = $src . '/' . $file;
+                $dstPath = $dst . '/' . $file;
+                if (is_dir($srcPath)) {
+                    $this->recursiveCopy($srcPath, $dstPath);
+                } else {
+                    copy($srcPath, $dstPath);
+                }
+            }
+        }
+        closedir($dir);
     }
 
     /**
