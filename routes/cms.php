@@ -43,6 +43,8 @@ Route::prefix(config('cms.admin_prefix'))->middleware(['web', 'auth', 'cms.maint
     Route::resource('plugins', PluginsController::class)->names('cms.admin.plugins');
     Route::post('plugins/{plugin}/activate', [PluginsController::class, 'activate'])->name('cms.admin.plugins.activate');
     Route::post('plugins/{plugin}/deactivate', [PluginsController::class, 'deactivate'])->name('cms.admin.plugins.deactivate');
+    Route::resource('users', \Buni\Cms\Controllers\Admin\UserController::class)->names('cms.admin.users');
+    Route::post('/users/{user}/send-reset', [\Buni\Cms\Controllers\Admin\UserController::class, 'sendReset'])->name('cms.admin.users.send-reset');
     Route::post('/logout', [FrontendPageController::class, 'logout'])->name('cms.admin.logout');
 });
 

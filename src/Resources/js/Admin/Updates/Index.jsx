@@ -9,6 +9,7 @@ export default function Index() {
         { name: 'Posts', href: '/admin/posts', icon: PencilSquareIcon },
         { name: 'Updates', href: '/admin/updates', icon: ArrowPathIcon },
         { name: 'Plugins', href: '/admin/plugins', icon: PuzzlePieceIcon },
+        { name: 'Users', href: '/admin/users', icon: PencilSquareIcon },
         { name: 'Settings', href: '/admin/settings', icon: Cog6ToothIcon },
     ];
 
