@@ -23,6 +23,13 @@ class InstallCommand extends Command
         // Seed roles and permissions
         Artisan::call('db:seed', ['--class' => 'Buni\Cms\Database\Seeders\CmsSeeder']);
 
+        // Attempt to build Tailwind CSS for the core (will use fallback if npx unavailable)
+        try {
+            Artisan::call('cms:build-tailwind');
+        } catch (\Exception $e) {
+            $this->warn('Automatic Tailwind build failed: ' . $e->getMessage());
+        }
+
         $this->info('DSC CMS installed successfully!');
     }
 }

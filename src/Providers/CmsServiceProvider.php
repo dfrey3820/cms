@@ -112,6 +112,7 @@ class CmsServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 \Buni\Cms\Commands\InstallCommand::class,
+                \Buni\Cms\Commands\BuildTailwindCommand::class,
                 \Buni\Cms\Commands\CreatePluginCommand::class,
                 \Buni\Cms\Commands\CreateThemeCommand::class,
             ]);
