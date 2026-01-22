@@ -13,6 +13,14 @@ use Buni\Cms\Controllers\Frontend\PageController as FrontendPageController;
 Route::prefix(config('cms.admin_prefix'))->middleware(['web'])->group(function () {
     Route::get('/login', [FrontendPageController::class, 'showLogin'])->name('cms.admin.login');
     Route::post('/login', [FrontendPageController::class, 'login'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])->name('cms.admin.login.post');
+    // Registration and password reset handled by CMS
+    Route::get('/register', [FrontendPageController::class, 'showRegister'])->name('cms.admin.register');
+    Route::post('/register', [FrontendPageController::class, 'register'])->name('cms.admin.register.post');
+
+    Route::get('/password/forgot', [FrontendPageController::class, 'showForgot'])->name('cms.admin.password.request');
+    Route::post('/password/email', [FrontendPageController::class, 'sendResetLink'])->name('cms.admin.password.email');
+    Route::get('/password/reset/{token}', [FrontendPageController::class, 'showReset'])->name('cms.admin.password.reset');
+    Route::post('/password/reset', [FrontendPageController::class, 'resetPassword'])->name('cms.admin.password.update');
 });
 
 Route::prefix(config('cms.admin_prefix'))->middleware(['web', 'auth', 'cms.maintenance'])->group(function () {

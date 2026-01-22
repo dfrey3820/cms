@@ -83,7 +83,7 @@ export default function Index() {
                             ))}
                         </div>
                         <div className="mt-4 text-center text-gray-500">
-                            <p>No plugins installed. <Link href="/admin/plugins/create" className="text-blue-600 hover:text-blue-800">Add your first plugin</Link></p>
+                            <div>No plugins installed. <Link href="/admin/plugins/create" className="text-blue-600 hover:text-blue-800">Add your first plugin</Link></div>
                         </div>
                     </div>
                 </div>

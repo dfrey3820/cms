@@ -3,6 +3,11 @@ import { Link } from '@inertiajs/react';
 import { HomeIcon, DocumentTextIcon, PencilSquareIcon, Cog6ToothIcon, ArrowPathIcon, PuzzlePieceIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 import Header from '../components/Header';
 
+import React from 'react';
+import { Link } from '@inertiajs/react';
+import { HomeIcon, DocumentTextIcon, PencilSquareIcon, Cog6ToothIcon, ArrowPathIcon, PuzzlePieceIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
+import Header from '../components/Header';
+
 export default function Dashboard({ auth }) {
     const menuItems = [
         { name: 'Dashboard', href: '/admin', icon: HomeIcon },
@@ -52,25 +57,30 @@ export default function Dashboard({ auth }) {
                 <Header auth={auth} />
 
                 <div className="flex-1 p-8">
-                <h1 className="text-3xl font-bold text-gray-800 mb-4">Dashboard</h1>
-                <p className="text-gray-600 mb-8">Welcome to DSC CMS Admin</p>
+                    <div className="mb-6">
+                        <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
+                        <p className="text-gray-600">Welcome to DSC CMS Admin</p>
+                    </div>
 
-                {/* Dashboard content */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div className="bg-white p-6 rounded-lg shadow">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">Pages</h3>
-                        <p className="text-gray-600">Manage your website pages</p>
-                        <Link href="/admin/pages" className="text-blue-600 hover:text-blue-800 mt-4 inline-block">View Pages →</Link>
-                    </div>
-                    <div className="bg-white p-6 rounded-lg shadow">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">Posts</h3>
-                        <p className="text-gray-600">Create and manage blog posts</p>
-                        <Link href="/admin/posts" className="text-blue-600 hover:text-blue-800 mt-4 inline-block">View Posts →</Link>
-                    </div>
-                    <div className="bg-white p-6 rounded-lg shadow">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">Settings</h3>
-                        <p className="text-gray-600">Configure your CMS settings</p>
-                        <Link href="/admin/settings" className="text-blue-600 hover:text-blue-800 mt-4 inline-block">View Settings →</Link>
+                    {/* Dashboard content */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="bg-white p-6 rounded-lg shadow">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-2">Pages</h3>
+                            <p className="text-gray-600">Manage your website pages</p>
+                            <Link href="/admin/pages" className="text-blue-600 hover:text-blue-800 mt-4 inline-block">View Pages →</Link>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-lg shadow">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-2">Posts</h3>
+                            <p className="text-gray-600">Create and manage blog posts</p>
+                            <Link href="/admin/posts" className="text-blue-600 hover:text-blue-800 mt-4 inline-block">View Posts →</Link>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-lg shadow">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-2">Settings</h3>
+                            <p className="text-gray-600">Configure your CMS settings</p>
+                            <Link href="/admin/settings" className="text-blue-600 hover:text-blue-800 mt-4 inline-block">View Settings →</Link>
+                        </div>
                     </div>
                 </div>
             </div>

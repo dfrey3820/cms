@@ -52,18 +52,18 @@ export default function Index({ pages, auth }) {
                 <Header auth={auth} />
 
                 <div className="flex-1 p-8">
-                <div className="flex justify-between items-center mb-6">
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-800">Pages</h1>
-                        <p className="text-gray-600">Manage your website pages</p>
+                    <div className="flex justify-between items-center mb-6">
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-800">Pages</h1>
+                            <p className="text-gray-600">Manage your website pages</p>
+                        </div>
+                        <Link
+                            href="/admin/pages/create"
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                        >
+                            Create Page
+                        </Link>
                     </div>
-                    <Link
-                        href="/admin/pages/create"
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                    >
-                        Create Page
-                    </Link>
-                </div>
 
                 {/* Pages list */}
                 <div className="bg-white rounded-lg shadow">
@@ -86,7 +86,7 @@ export default function Index({ pages, auth }) {
                                 ))}
                             </ul>
                         ) : (
-                            <p className="text-gray-600">No pages found. <Link href="/admin/pages/create" className="text-blue-600 hover:text-blue-800">Create your first page</Link></p>
+                            <p className="text-gray-600">No pages found. Create your first page</p>
                         )}
                     </div>
                 </div>

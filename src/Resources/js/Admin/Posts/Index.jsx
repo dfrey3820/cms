@@ -114,7 +114,7 @@ export default function Index({ auth }) {
                             </table>
                         </div>
                         <div className="mt-4 text-center text-gray-500">
-                            <p>No posts found. <Link href="/admin/posts/create" className="text-blue-600 hover:text-blue-800">Create your first post</Link></p>
+                            <p>No posts found. Create your first post</p>
                         </div>
                     </div>
                 </div>

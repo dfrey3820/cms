@@ -8,6 +8,11 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+use Illuminate\Auth\Events\PasswordReset;
 use Buni\Cms\Models\Page;
 use \App\Models\User;
 use Inertia\Inertia;
@@ -947,6 +952,24 @@ EOT;
         return response($html);
     }
 
+    private function renderRegisterPage()
+    {
+        $html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="csrf-token" content="' . csrf_token() . '"><title>Register - Buni CMS</title><script src="https://cdn.tailwindcss.com"></script></head><body class="min-h-screen flex items-center justify-center bg-gray-50"><div class="max-w-md w-full bg-white p-8 rounded-lg shadow-lg"><h2 class="text-2xl font-bold mb-4">Register Admin</h2><form method="POST" action="' . route('cms.admin.register.post') . '">' . csrf_field() . '<div class="mb-3"><label class="block text-sm">Name</label><input name="name" required class="w-full px-3 py-2 border rounded"/></div><div class="mb-3"><label class="block text-sm">Email</label><input name="email" type="email" required class="w-full px-3 py-2 border rounded"/></div><div class="mb-3"><label class="block text-sm">Password</label><input name="password" type="password" required class="w-full px-3 py-2 border rounded"/></div><div class="mb-3"><label class="block text-sm">Confirm Password</label><input name="password_confirmation" type="password" required class="w-full px-3 py-2 border rounded"/></div><div class="mt-4"><button type="submit" class="w-full py-2 bg-blue-600 text-white rounded">Create account</button></div></form><div class="mt-4 text-sm"><a href="' . route('cms.admin.login') . '" class="text-blue-600">Back to login</a></div></div></body></html>';
+        return response($html);
+    }
+
+    private function renderForgotPage()
+    {
+        $html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="csrf-token" content="' . csrf_token() . '"><title>Forgot Password - Buni CMS</title><script src="https://cdn.tailwindcss.com"></script></head><body class="min-h-screen flex items-center justify-center bg-gray-50"><div class="max-w-md w-full bg-white p-8 rounded-lg shadow-lg"><h2 class="text-2xl font-bold mb-4">Reset Password</h2><form method="POST" action="' . route('cms.admin.password.email') . '">' . csrf_field() . '<div class="mb-3"><label class="block text-sm">Email</label><input name="email" type="email" required class="w-full px-3 py-2 border rounded"/></div><div class="mt-4"><button type="submit" class="w-full py-2 bg-blue-600 text-white rounded">Send reset link</button></div></form><div class="mt-4 text-sm"><a href="' . route('cms.admin.login') . '" class="text-blue-600">Back to login</a></div></div></body></html>';
+        return response($html);
+    }
+
+    private function renderResetPage($token, $email = '')
+    {
+        $html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="csrf-token" content="' . csrf_token() . '"><title>Reset Password - Buni CMS</title><script src="https://cdn.tailwindcss.com"></script></head><body class="min-h-screen flex items-center justify-center bg-gray-50"><div class="max-w-md w-full bg-white p-8 rounded-lg shadow-lg"><h2 class="text-2xl font-bold mb-4">Set New Password</h2><form method="POST" action="' . route('cms.admin.password.update') . '">' . csrf_field() . '<input type="hidden" name="token" value="' . htmlspecialchars($token) . '"/><div class="mb-3"><label class="block text-sm">Email</label><input name="email" type="email" required value="' . htmlspecialchars($email) . '" class="w-full px-3 py-2 border rounded"/></div><div class="mb-3"><label class="block text-sm">Password</label><input name="password" type="password" required class="w-full px-3 py-2 border rounded"/></div><div class="mb-3"><label class="block text-sm">Confirm Password</label><input name="password_confirmation" type="password" required class="w-full px-3 py-2 border rounded"/></div><div class="mt-4"><button type="submit" class="w-full py-2 bg-blue-600 text-white rounded">Reset password</button></div></form><div class="mt-4 text-sm"><a href="' . route('cms.admin.login') . '" class="text-blue-600">Back to login</a></div></div></body></html>';
+        return response($html);
+    }
+
     private function renderDatabaseStep()
     {
         return '<div class="space-y-8">
@@ -1350,6 +1373,83 @@ EOT;
         $request->session()->regenerateToken();
 
         return redirect('/');
+    }
+
+    public function showRegister()
+    {
+        return $this->renderRegisterPage();
+    }
+
+    public function register(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+        ]);
+
+        Auth::login($user);
+
+        return redirect('/admin');
+    }
+
+    public function showForgot()
+    {
+        return $this->renderForgotPage();
+    }
+
+    public function sendResetLink(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+
+        $status = Password::sendResetLink($request->only('email'));
+
+        if ($status === Password::RESET_LINK_SENT) {
+            return back()->with('status', __($status));
+        }
+
+        return back()->withErrors(['email' => __($status)]);
+    }
+
+    public function showReset($token, Request $request)
+    {
+        $email = $request->query('email', '');
+        return $this->renderResetPage($token, $email);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'token' => 'required',
+            'email' => 'required|email',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function ($user, $password) {
+                $user->password = Hash::make($password);
+                $user->setRememberToken(Str::random(60));
+                $user->save();
+                event(new PasswordReset($user));
+            }
+        );
+
+        if ($status === Password::PASSWORD_RESET) {
+            $user = User::where('email', $request->email)->first();
+            if ($user) {
+                Auth::login($user);
+            }
+            return redirect('/admin');
+        }
+
+        return back()->withErrors(['email' => [__($status)]]);
     }
 
     private function renderLoginPage()
