@@ -218,16 +218,26 @@ class PageController extends Controller
             'APP_TIMEZONE' => session('install_timezone'),
             'SESSION_DRIVER' => 'file', // Use file sessions during installation
         ];
-
-        $html = '<!DOCTYPE html>
+        $mailData = [
             'MAIL_MAILER' => session('install_mail_driver'),
             'MAIL_HOST' => session('install_mail_host'),
             'MAIL_PORT' => session('install_mail_port'),
             'MAIL_USERNAME' => session('install_mail_username'),
             'MAIL_PASSWORD' => session('install_mail_password'),
             'MAIL_ENCRYPTION' => session('install_mail_encryption'),
-    <link rel="stylesheet" href="' . asset('vendor/cms/tailwind.css') . '">
-    ' . (app()->bound(\Buni\Cms\Services\HookManager::class) ? (function () { ob_start(); app(\Buni\Cms\Services\HookManager::class)->doAction('cms_enqueue_scripts'); return ob_get_clean(); })() : '') . '
+        ];
+
+        // Build a minimal HTML status page for the installer (used during install flow)
+        $html = '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">';
+        $html .= '<link rel="stylesheet" href="' . asset('vendor/cms/tailwind.css') . '">';
+
+        if (app()->bound(\Buni\Cms\Services\HookManager::class)) {
+            ob_start();
+            app(\Buni\Cms\Services\HookManager::class)->doAction('cms_enqueue_scripts');
+            $html .= ob_get_clean();
+        }
+
+        $html .= '</head><body><div id="install-status">Installation in progress...</div></body></html>';
 
         // Update .env first
         $this->updateEnv(array_merge($dbData, $siteData, $mailData));
