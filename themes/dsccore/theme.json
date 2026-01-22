@@ -1,0 +1,8 @@
+{
+    "name": "DSC Core",
+    "description": "The default admin theme for Buni CMS",
+    "author": "Digital Steps Creatives",
+    "author_url": "https://dsc.co.ke",
+    "type": "admin",
+    "version": "1.0.0"
+}

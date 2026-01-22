@@ -1,0 +1,15 @@
+/* Basic admin theme styles for DSC Core (placeholder) */
+:root{
+  --bg: #0f172a;
+  --card: #0b1220;
+  --muted: #94a3b8;
+  --accent: #06b6d4;
+  --text: #e6eef8;
+}
+body{
+  background: linear-gradient(180deg,var(--bg), #071022);
+  color:var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+.header{display:flex;align-items:center;justify-content:space-between;padding:1rem;background:rgba(255,255,255,0.02)}
+.card{background:var(--card);padding:1rem;border-radius:8px;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
