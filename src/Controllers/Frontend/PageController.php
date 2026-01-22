@@ -406,11 +406,11 @@ class PageController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Installation completed successfully',
-                'redirect' => '/admin/login'
+                'redirect' => '/login'
             ]);
         }
 
-        return redirect('/admin/login');
+        return redirect('/login');
     }
 
     private function testDatabaseConnection($data)
@@ -1343,7 +1343,7 @@ EOT;
                     Your CMS is now ready to use. You can access the admin panel to start creating content.
                 </p>
                 <div class="flex flex-col sm:flex-row gap-3">
-                    <a href="/admin/login" class="inline-flex items-center justify-center px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200">
+                    <a href="/login" class="inline-flex items-center justify-center px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
                         </svg>
