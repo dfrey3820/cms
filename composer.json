@@ -32,5 +32,13 @@
                 "Buni\\Cms\\Providers\\CmsServiceProvider"
             ]
         }
+    },
+    "scripts": {
+        "post-package-install": [
+            "@php vendor/buni/cms/scripts/prepend_package_views.php"
+        ],
+        "post-package-update": [
+            "@php vendor/buni/cms/scripts/prepend_package_views.php"
+        ]
     }
 }
