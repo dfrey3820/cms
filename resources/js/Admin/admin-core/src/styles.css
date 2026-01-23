@@ -1,0 +1,9 @@
+:root{
+  --bg: #f3f4f6;
+}
+body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
+.admin-core-root{background:var(--bg);height:100vh}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
