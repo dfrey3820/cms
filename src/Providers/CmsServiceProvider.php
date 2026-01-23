@@ -67,7 +67,17 @@ class CmsServiceProvider extends ServiceProvider
 
         $this->loadRoutesFrom(__DIR__.'/../../routes/cms.php');
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
-        $this->loadViewsFrom(__DIR__.'/../../resources/views', 'cms');
+        // Prepend package views so they take precedence for non-namespaced view lookups
+        $packageViewsPath = __DIR__.'/../../resources/views';
+        if (is_dir($packageViewsPath) && isset($this->app['view'])) {
+            try {
+                $finder = $this->app['view']->getFinder();
+                $finder->prependLocation($packageViewsPath);
+            } catch (\Throwable $e) {
+                // If view finder isn't available yet, fall back to registering namespaced views
+            }
+        }
+        $this->loadViewsFrom($packageViewsPath, 'cms');
 
         // Auto-run migrations if tables don't exist and database is accessible
         try {
