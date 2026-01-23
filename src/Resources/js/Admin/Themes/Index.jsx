@@ -1,19 +1,11 @@
 import React from 'react';
 import { Inertia } from '@inertiajs/inertia';
-import Header from '../components/Header';
-import { Cog6ToothIcon, CollectionIcon } from '@heroicons/react/24/outline';
+import Header from '@admin-core/components/Header';
+import { Cog6ToothIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import menuItems from '@admin-core/menuItems';
 
 export default function Index({ themes = [], active }) {
-    const menuItems = [
-        { name: 'Dashboard', href: '/admin', icon: Cog6ToothIcon },
-        { name: 'Pages', href: '/admin/pages', icon: CollectionIcon },
-        { name: 'Posts', href: '/admin/posts', icon: CollectionIcon },
-        { name: 'Updates', href: '/admin/updates', icon: CollectionIcon },
-        { name: 'Plugins', href: '/admin/plugins', icon: CollectionIcon },
-        { name: 'Themes', href: '/admin/themes', icon: CollectionIcon },
-        { name: 'Users', href: '/admin/users', icon: CollectionIcon },
-        { name: 'Settings', href: '/admin/settings', icon: Cog6ToothIcon },
-    ];
+    // menuItems imported from admin-core
 
     function activate(themeId) {
         Inertia.post(`/admin/themes/${themeId}/activate`);

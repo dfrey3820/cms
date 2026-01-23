@@ -1,18 +1,11 @@
 import React from 'react';
 import { Link } from '@inertiajs/react';
 import { HomeIcon, DocumentTextIcon, PencilSquareIcon, Cog6ToothIcon, ArrowPathIcon, PuzzlePieceIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
-import Header from '../components/Header';
+import Header from '@admin-core/components/Header';
+import menuItems from '@admin-core/menuItems';
 
 export default function Index({ auth }) {
-    const menuItems = [
-        { name: 'Dashboard', href: '/admin', icon: HomeIcon },
-        { name: 'Pages', href: '/admin/pages', icon: DocumentTextIcon },
-        { name: 'Posts', href: '/admin/posts', icon: PencilSquareIcon },
-        { name: 'Updates', href: '/admin/updates', icon: ArrowPathIcon },
-        { name: 'Plugins', href: '/admin/plugins', icon: PuzzlePieceIcon },
-        { name: 'Users', href: '/admin/users', icon: PencilSquareIcon },
-        { name: 'Settings', href: '/admin/settings', icon: Cog6ToothIcon },
-    ];
+    // menuItems imported from admin-core
 
     return (
         <div className="flex h-screen bg-gray-100">

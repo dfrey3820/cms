@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { HomeIcon, DocumentTextIcon, PencilSquareIcon, Cog6ToothIcon, ArrowPathIcon, PuzzlePieceIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
-import Header from '../components/Header';
+import Header from '@admin-core/components/Header';
+import menuItems from '@admin-core/menuItems';
 
 export default function Index({ settings, auth }) {
     const [activeTab, setActiveTab] = useState('site');
@@ -22,14 +23,7 @@ export default function Index({ settings, auth }) {
         }
     }, [settings, reset]);
 
-    const menuItems = [
-        { name: 'Dashboard', href: '/admin', icon: HomeIcon },
-        { name: 'Pages', href: '/admin/pages', icon: DocumentTextIcon },
-        { name: 'Posts', href: '/admin/posts', icon: PencilSquareIcon },
-        { name: 'Updates', href: '/admin/updates', icon: ArrowPathIcon },
-        { name: 'Plugins', href: '/admin/plugins', icon: PuzzlePieceIcon },
-        { name: 'Settings', href: '/admin/settings', icon: Cog6ToothIcon },
-    ];
+    // menuItems imported from admin-core
 
     const tabs = [
         { id: 'site', label: 'Site', icon: 'fas fa-globe' },
